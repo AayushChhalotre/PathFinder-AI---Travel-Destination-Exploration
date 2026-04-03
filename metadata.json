@@ -1,0 +1,5 @@
+{
+  "name": "Pathfinder AI",
+  "description": "A hyper-personalized travel exploration engine that maps your mood to physically bookable destinations.",
+  "requestFramePermissions": ["geolocation"]
+}
