@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local Netlify folder
+.netlify
+
+# Research and Context
+Research and Product docs/
+
+# Firebase config (contains API keys)
+firebase-applet-config.json

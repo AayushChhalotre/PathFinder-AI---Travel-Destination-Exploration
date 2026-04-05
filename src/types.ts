@@ -108,7 +108,7 @@ export interface UserProfile {
   location?: string;
   lat?: number;
   lng?: number;
-  profession?: string;
+  travelGoal?: string;
   workType?: 'desk' | 'active' | 'hybrid';
   travelStyle?: 'solo' | 'couple' | 'family';
   interests?: string[];

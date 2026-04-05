@@ -1,0 +1,5 @@
+145: function SafeImage({ src, alt, className, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+161: function ImageCarousel({ images, alt }: { images: string[], alt: string }) {
+201: function WeatherDisplay({ lat, lng }: { lat?: number; lng?: number }) {
+284: function ItineraryPlanner({ 
+1154: export default function App() {
