@@ -60,7 +60,7 @@ export function ConstraintPanel({
       {/* Guest Details (Start Point & Trip Purpose) */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+          <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
             <MapPin className="w-4 h-4 text-sky-400" />
             Start Point (Location)
           </label>
@@ -81,7 +81,7 @@ export function ConstraintPanel({
           </div>
         </div>
         <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+          <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
             <Compass className="w-4 h-4 text-amber-400" />
             Trip Purpose / Vibe Goal
           </label>
@@ -97,13 +97,13 @@ export function ConstraintPanel({
 
       {/* Date Range */}
       <div className="space-y-4">
-        <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+        <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
           <CalendarDays className="w-4 h-4 text-violet-400" />
           Travel Dates
         </label>
         <div className="grid grid-cols-2 gap-4 max-w-md">
           <div className="space-y-1.5">
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Departure</span>
+            <span className="text-[10px] text-zinc-300 font-bold uppercase tracking-widest">Departure</span>
             <input
               type="date"
               value={startDate}
@@ -113,7 +113,7 @@ export function ConstraintPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Return</span>
+            <span className="text-[10px] text-zinc-300 font-bold uppercase tracking-widest">Return</span>
             <input
               type="date"
               value={endDate}
@@ -130,7 +130,7 @@ export function ConstraintPanel({
         {/* Budget Slider */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+            <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
               <IndianRupee className="w-4 h-4 text-emerald-400" />
               Budget Cap (INR)
             </label>
@@ -147,7 +147,7 @@ export function ConstraintPanel({
             onChange={e => onBudgetChange(Number(e.target.value))}
             className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
           />
-          <div className="flex justify-between text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
+          <div className="flex justify-between text-[9px] text-zinc-300 font-bold uppercase tracking-widest">
             <span>₹5K</span>
             <span>₹5L</span>
           </div>
@@ -157,12 +157,12 @@ export function ConstraintPanel({
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="space-y-0.5">
-              <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+              <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
                 <Clock className="w-4 h-4 text-rose-400" />
                 Max Travel Time
-                <Info className="w-3 h-3 text-zinc-600" />
+                <Info className="w-3 h-3 text-zinc-300" />
               </label>
-              <p className="text-[10px] text-zinc-500 font-medium leading-tight">
+              <p className="text-[10px] text-zinc-200 font-medium leading-tight">
                 One-way duration including layovers
               </p>
             </div>
@@ -179,7 +179,7 @@ export function ConstraintPanel({
             onChange={e => onMaxHoursChange(Number(e.target.value))}
             className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
           />
-          <div className="flex justify-between text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
+          <div className="flex justify-between text-[9px] text-zinc-300 font-bold uppercase tracking-widest">
             <span>2h</span>
             <span>48h</span>
           </div>
@@ -188,7 +188,7 @@ export function ConstraintPanel({
         {/* Trip Duration Slider */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+            <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
               <Calendar className="w-4 h-4 text-indigo-400" />
               Trip Duration
             </label>
@@ -205,7 +205,7 @@ export function ConstraintPanel({
             onChange={e => onTripDaysChange(Number(e.target.value))}
             className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-white"
           />
-          <div className="flex justify-between text-[9px] text-zinc-600 font-bold uppercase tracking-widest">
+          <div className="flex justify-between text-[9px] text-zinc-300 font-bold uppercase tracking-widest">
             <span>1 day</span>
             <span>30 days</span>
           </div>

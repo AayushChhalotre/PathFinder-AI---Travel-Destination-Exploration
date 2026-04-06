@@ -13,9 +13,27 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Validate required environment variables to prevent runtime crashes.
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([_, value]) => !value)
+  .map(([key]) => `VITE_FIREBASE_${key.toUpperCase()}`);
+
+if (missingKeys.length > 0) {
+  console.error(
+    `[Firebase] CRITICAL: Missing environment variables: ${missingKeys.join(', ')}. ` +
+    `Ensure these are set in your Netlify dashboard with the VITE_ prefix.`
+  );
+}
+
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  console.error('[Firebase] Initialization failed:', error);
+}
+
+export const auth = getAuth(app!);
+export const db = getFirestore(app!);
 export const googleProvider = new GoogleAuthProvider();
 
 export { signInWithPopup, signOut, onAuthStateChanged };

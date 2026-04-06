@@ -39,11 +39,11 @@ Return ONLY valid JSON, no markdown fences.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
+      model: 'gemini-1.5-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
-    const text = response.text?.trim() || '';
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
     // Strip potential markdown fences
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(clean) as VibeIntentResult;

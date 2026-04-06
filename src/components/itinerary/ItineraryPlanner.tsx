@@ -275,7 +275,7 @@ export default function ItineraryPlanner({
                     Personalized for {profile.travelGoal}
                   </p>
                 )}
-                <p className="text-zinc-500 text-xs md:text-sm flex items-center gap-2">
+                <p className="text-zinc-300 text-xs md:text-sm flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   {totalDays} Days • {occasion?.label || 'Custom Trip'} • {travelMonth}
                 </p>
@@ -285,7 +285,7 @@ export default function ItineraryPlanner({
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="flex-grow md:flex-grow-0 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-0.5">Budget Estimate</p>
+              <p className="text-[10px] text-zinc-300 uppercase tracking-widest font-bold mb-0.5">Budget Estimate</p>
               <p className="text-lg font-display font-bold">₹{destination.priceINR.toLocaleString()}</p>
             </div>
             
@@ -320,7 +320,7 @@ export default function ItineraryPlanner({
         {/* Travel Time Bar Visualization */}
         <section className="mb-16">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-2">
-            <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-widest">Trip Timeline Visualization</h2>
+            <h2 className="text-sm font-medium text-zinc-200 uppercase tracking-widest">Trip Timeline Visualization</h2>
             <div className="flex gap-4 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">
               <div className="flex items-center gap-1.5 text-rose-400">
                 <div className="w-2 h-2 bg-rose-400 rounded-full" />
@@ -366,7 +366,7 @@ export default function ItineraryPlanner({
               </div>
             </div>
           </div>
-          <div className="flex justify-between mt-3 text-[10px] text-zinc-500 font-bold uppercase tracking-tighter">
+          <div className="flex justify-between mt-3 text-[10px] text-zinc-300 font-bold uppercase tracking-tighter">
             <span>Day 0 (Start)</span>
             <span>Day {totalDays} (End)</span>
           </div>
@@ -380,7 +380,7 @@ export default function ItineraryPlanner({
                     <TransportIcon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <h4 className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 mb-0.5">Transport Strategy</h4>
+                    <h4 className="text-[8px] font-bold uppercase tracking-widest text-zinc-300 mb-0.5">Transport Strategy</h4>
                     <p className="text-xs font-display font-bold truncate">{transportLabel} • {subOption || 'Standard'}</p>
                   </div>
                 </div>
@@ -388,13 +388,13 @@ export default function ItineraryPlanner({
 
               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3 shadow-md">
                 <div className="flex justify-between items-center">
-                  <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Experience Match</span>
+                  <span className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest">Experience Match</span>
                   <span className="text-xs font-bold text-emerald-400">98%</span>
                 </div>
                 <div className="h-1 bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 w-[98%]" />
                 </div>
-                <p className="text-[9px] text-zinc-500 leading-tight">Optimized for your travel goal and selected vibes.</p>
+                <p className="text-[9px] text-zinc-300 leading-tight">Optimized for your travel goal and selected vibes.</p>
               </div>
 
               {destination.bestDuration && (
@@ -403,7 +403,7 @@ export default function ItineraryPlanner({
                     <Clock className="w-5 h-5 text-blue-400" />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <h4 className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 mb-0.5">Recommended Stay</h4>
+                    <h4 className="text-[8px] font-bold uppercase tracking-widest text-zinc-300 mb-0.5">Recommended Stay</h4>
                     <p className="text-xs font-display font-bold text-white truncate">{destination.bestDuration}</p>
                   </div>
                 </div>
@@ -434,8 +434,8 @@ export default function ItineraryPlanner({
                           exit={{ opacity: 0 }}
                           className="absolute inset-0 flex flex-col items-center justify-center text-center gap-2"
                         >
-                          <Info className="w-6 h-6 text-zinc-600" />
-                          <p className="text-[10px] text-zinc-500 font-medium">No specific tips available yet.</p>
+                          <Info className="w-6 h-6 text-zinc-400" />
+                          <p className="text-[10px] text-zinc-300 font-medium">No specific tips available yet.</p>
                         </motion.div>
                       ) : (
                         destination.travelerInsights.map((insight, i) => (
@@ -485,7 +485,7 @@ export default function ItineraryPlanner({
               {/* Priority 2: Trip Members */}
               <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3 shadow-md">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <h4 className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
                     <UsersIcon className="w-3 h-3" />
                     Trip Members
                   </h4>
@@ -504,7 +504,7 @@ export default function ItineraryPlanner({
                   </div>
                   {members.map((member, i) => (
                     <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-full border border-white/5 group">
-                      <span className="text-[8px] font-bold text-zinc-400">{member.displayName}</span>
+                      <span className="text-[8px] font-bold text-zinc-200">{member.displayName}</span>
                       <button 
                         onClick={() => setMembers(prev => prev.filter((_, idx) => idx !== i))}
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
@@ -548,7 +548,7 @@ export default function ItineraryPlanner({
                     "flex-1 min-w-[80px] py-4 rounded-xl border transition-all duration-300",
                     selectedDay === i + 1 
                       ? "bg-white text-black border-white shadow-lg" 
-                      : "bg-white/5 text-zinc-500 border-white/10 hover:border-white/20"
+                      : "bg-white/5 text-zinc-200 border-white/10 hover:border-white/20"
                   )}
                 >
                   <p className="text-[10px] uppercase font-bold tracking-widest mb-1">Day</p>
@@ -572,7 +572,7 @@ export default function ItineraryPlanner({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sortedActivities.length === 0 ? (
-                  <div className="col-span-full p-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-zinc-600">
+                  <div className="col-span-full p-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-zinc-200">
                     <Map className="w-12 h-12 mb-4 opacity-20" />
                     <p className="text-sm font-medium">No activities planned yet.</p>
                     <button 
@@ -602,11 +602,11 @@ export default function ItineraryPlanner({
                         <div className="flex justify-between items-start mb-4">
                           <div className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                            isEditing ? "bg-white text-black" : "bg-white/10 text-zinc-400 group-hover:bg-white group-hover:text-black"
+                            isEditing ? "bg-white text-black" : "bg-white/10 text-zinc-300 group-hover:bg-white group-hover:text-black"
                           )}>
                             <Icon className="w-5 h-5" />
                           </div>
-                          <span className="text-[10px] font-mono font-bold text-zinc-500 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+                          <span className="text-[10px] font-mono font-bold text-zinc-300 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
                             {act.time}
                           </span>
                         </div>
@@ -616,7 +616,7 @@ export default function ItineraryPlanner({
                             <div className="space-y-4">
                               <div className="space-y-3">
                                 <div>
-                                  <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Time</label>
+                                  <label className="text-[10px] font-bold text-zinc-300 uppercase block mb-1">Time</label>
                                   <input 
                                     type="text"
                                     value={editForm.time}
@@ -625,7 +625,7 @@ export default function ItineraryPlanner({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Title</label>
+                                  <label className="text-[10px] font-bold text-zinc-300 uppercase block mb-1">Title</label>
                                   <input 
                                     type="text"
                                     value={editForm.title}
@@ -634,7 +634,7 @@ export default function ItineraryPlanner({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Description</label>
+                                  <label className="text-[10px] font-bold text-zinc-300 uppercase block mb-1">Description</label>
                                   <textarea 
                                     value={editForm.description}
                                     onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
@@ -642,7 +642,7 @@ export default function ItineraryPlanner({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Personal Notes</label>
+                                  <label className="text-[10px] font-bold text-zinc-300 uppercase block mb-1">Personal Notes</label>
                                   <textarea 
                                     value={editForm.notes || ''}
                                     onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
@@ -651,7 +651,7 @@ export default function ItineraryPlanner({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Reference Images (URLs)</label>
+                                  <label className="text-[10px] font-bold text-zinc-300 uppercase block mb-1">Reference Images (URLs)</label>
                                   <div className="flex gap-2 mb-2">
                                     <input 
                                       type="text"
@@ -698,7 +698,7 @@ export default function ItineraryPlanner({
                               <div className="flex justify-end gap-2">
                                 <button 
                                   onClick={() => setEditingActivityId(null)}
-                                  className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                                  className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-300 hover:text-white transition-colors"
                                 >
                                   Cancel
                                 </button>
@@ -713,12 +713,12 @@ export default function ItineraryPlanner({
                           ) : (
                             <>
                               <h4 className="font-display font-bold text-base mb-2 group-hover:text-amber-400 transition-colors">{act.title}</h4>
-                              <p className="text-zinc-500 text-xs leading-relaxed line-clamp-3">{act.description}</p>
+                              <p className="text-zinc-300 text-xs leading-relaxed line-clamp-3">{act.description}</p>
                               
                               {act.notes && (
                                 <div className="mt-3 p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 flex gap-2">
                                   <StickyNote className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
-                                  <p className="text-[10px] text-zinc-400 italic leading-relaxed">{act.notes}</p>
+                                  <p className="text-[10px] text-zinc-200 italic leading-relaxed">{act.notes}</p>
                                 </div>
                               )}
                               
@@ -740,7 +740,7 @@ export default function ItineraryPlanner({
                                   <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
                                     <button 
                                       onClick={() => startEditing(act)}
-                                      className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                                      className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-300 hover:text-white transition-colors"
                                     >
                                       <Edit2 className="w-3 h-3" />
                                       Edit
@@ -754,7 +754,7 @@ export default function ItineraryPlanner({
                                     </button>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-700">
+                                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-300">
                                     <Info className="w-3 h-3" />
                                     Fixed
                                   </div>
@@ -793,7 +793,7 @@ export default function ItineraryPlanner({
                       </div>
                       <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">{sug.time}</p>
                       <p className="text-sm font-bold text-white mb-1 group-hover:text-emerald-300 transition-colors">{sug.title}</p>
-                      <p className="text-[10px] text-zinc-500 leading-tight">{sug.description}</p>
+                      <p className="text-[10px] text-zinc-200 leading-tight">{sug.description}</p>
                     </button>
                   ))}
                 </div>
@@ -811,11 +811,11 @@ export default function ItineraryPlanner({
                 {(!destination.socialMediaPosts || destination.socialMediaPosts.length === 0) ? (
                   <div className="p-12 bg-white/5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center gap-4">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center">
-                      <Camera className="w-8 h-8 text-zinc-700" />
+                      <Camera className="w-8 h-8 text-zinc-300" />
                     </div>
                     <div className="max-w-xs">
                       <p className="text-sm font-bold text-white mb-1">No posts found yet</p>
-                      <p className="text-xs text-zinc-500">We're still curating the best social media moments for {destination.name}. Check back soon!</p>
+                      <p className="text-xs text-zinc-200">We're still curating the best social media moments for {destination.name}. Check back soon!</p>
                     </div>
                   </div>
                 ) : (
@@ -851,7 +851,7 @@ export default function ItineraryPlanner({
                               <ExternalLink className="w-3 h-3 text-white" />
                             </div>
                           ) : (
-                            <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[8px] font-bold text-zinc-400 uppercase tracking-widest border border-white/5">
+                            <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[8px] font-bold text-zinc-200 uppercase tracking-widest border border-white/5">
                               Preview Only
                             </div>
                           )}
@@ -863,7 +863,7 @@ export default function ItineraryPlanner({
                           </p>
                           
                           {(!post.url || post.url === '#') && (
-                            <p className="mt-auto text-[10px] text-zinc-500 italic">
+                            <p className="mt-auto text-[10px] text-zinc-200 italic">
                               Link coming soon...
                             </p>
                           )}

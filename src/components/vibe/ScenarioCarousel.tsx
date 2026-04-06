@@ -29,7 +29,7 @@ interface ScenarioCarouselProps {
 export function ScenarioCarousel({ selectedScenarioId, onSelect }: ScenarioCarouselProps) {
   return (
     <section>
-      <h2 className="font-display text-lg text-zinc-400 mb-6 uppercase tracking-widest font-medium">
+      <h2 className="font-display text-lg text-zinc-200 mb-6 uppercase tracking-widest font-medium">
         Choose a vibe
       </h2>
 
@@ -66,7 +66,7 @@ export function ScenarioCarousel({ selectedScenarioId, onSelect }: ScenarioCarou
                   <Icon
                     className={cn(
                       'w-4 h-4',
-                      isActive ? 'text-black' : 'text-zinc-400 group-hover:text-white'
+                      isActive ? 'text-black' : 'text-zinc-300 group-hover:text-white'
                     )}
                   />
                 </div>
@@ -79,7 +79,7 @@ export function ScenarioCarousel({ selectedScenarioId, onSelect }: ScenarioCarou
                   <span
                     className={cn(
                       'text-[8px] uppercase tracking-[0.2em] font-bold px-1.5 py-0.5 rounded-md',
-                      isActive ? 'bg-black/5 text-black/60' : 'bg-white/5 text-zinc-500'
+                      isActive ? 'bg-black/5 text-black/60' : 'bg-white/5 text-zinc-400'
                     )}
                   >
                     {scenario.vibe}

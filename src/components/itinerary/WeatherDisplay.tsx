@@ -36,12 +36,12 @@ export function WeatherDisplay({ lat, lng }: { lat?: number; lng?: number }) {
 
   const getWeatherIcon = (code: number) => {
     if (code === 0) return <Sun className="w-5 h-5 text-amber-400" />;
-    if (code <= 3) return <Cloud className="w-5 h-5 text-zinc-400" />;
-    if (code <= 48) return <Wind className="w-5 h-5 text-zinc-500" />;
+    if (code <= 3) return <Cloud className="w-5 h-5 text-zinc-200" />;
+    if (code <= 48) return <Wind className="w-5 h-5 text-zinc-300" />;
     if (code <= 65 || (code >= 80 && code <= 82)) return <CloudRain className="w-5 h-5 text-blue-400" />;
     if (code <= 77) return <CloudSnow className="w-5 h-5 text-indigo-300" />;
     if (code >= 95) return <CloudLightning className="w-5 h-5 text-purple-400" />;
-    return <Cloud className="w-5 h-5 text-zinc-400" />;
+    return <Cloud className="w-5 h-5 text-zinc-200" />;
   };
 
   const current = weather.current_weather;
@@ -55,12 +55,12 @@ export function WeatherDisplay({ lat, lng }: { lat?: number; lng?: number }) {
             {getWeatherIcon(current.weathercode)}
           </div>
           <div>
-            <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Current Weather</p>
+            <p className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest">Current Weather</p>
             <p className="text-lg font-display font-bold leading-none">{Math.round(current.temperature)}°C</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Wind</p>
+          <p className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest">Wind</p>
           <p className="text-xs font-medium">{current.windspeed} km/h</p>
         </div>
       </div>
@@ -68,7 +68,7 @@ export function WeatherDisplay({ lat, lng }: { lat?: number; lng?: number }) {
       <div className="grid grid-cols-3 gap-1.5 pt-3 border-t border-white/5">
         {daily.time.slice(1, 4).map((date: string, i: number) => (
           <div key={date} className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg bg-white/5 border border-white/5">
-            <p className="text-[7px] font-bold text-zinc-500 uppercase">
+            <p className="text-[7px] font-bold text-zinc-300 uppercase">
               {new Date(date).toLocaleDateString('en-US', { weekday: 'short' })}
             </p>
             <div className="scale-75">

@@ -41,7 +41,7 @@ export function VibeCard({ image, isSelected, index, onToggle }: VibeCardProps) 
     trending: { icon: TrendingUp, color: 'bg-rose-500/80 text-white' },
     niche: { icon: BadgePercent, color: 'bg-indigo-500/80 text-white' },
     new: { icon: SparklesIcon, color: 'bg-emerald-500/80 text-white' },
-    budget: { icon: Star, color: 'bg-zinc-500/80 text-white' },
+    budget: { icon: Star, color: 'bg-zinc-300/80 text-black/80' },
   };
 
   const StatusIcon = image.status ? statusConfig[image.status]?.icon : null;

@@ -45,10 +45,10 @@ export function VibeGrid({
     <section>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-3">
         <div className="space-y-1">
-          <h2 className="font-display text-lg text-zinc-400 uppercase tracking-widest font-medium">
+          <h2 className="font-display text-lg text-zinc-200 uppercase tracking-widest font-medium">
             Visual Anchors
           </h2>
-          <p className="text-xs text-zinc-600 max-w-md">
+          <p className="text-xs text-zinc-400 max-w-md">
             Tap the images that speak to you. We'll decode your travel vibe.
           </p>
         </div>
@@ -56,7 +56,7 @@ export function VibeGrid({
         <div className="flex items-center gap-3 flex-shrink-0">
           {/* Selection counter */}
           {selectedImageIds.length > 0 && (
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
               {selectedImageIds.length}/5 selected
             </span>
           )}
@@ -71,7 +71,7 @@ export function VibeGrid({
                 className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full"
               >
                 <BrainCircuit className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
+                <span className="text-[10px] text-zinc-300 font-bold uppercase tracking-widest">
                   Reading your vibe…
                 </span>
               </motion.div>
@@ -88,7 +88,7 @@ export function VibeGrid({
                 <span className="text-[10px] text-white font-bold uppercase tracking-widest">
                   {aiIntent.suggestedVibe}
                 </span>
-                <span className="text-[9px] text-zinc-500">
+                <span className="text-[9px] text-zinc-400">
                   • {aiIntent.emotionalTone}
                 </span>
               </motion.div>
@@ -119,7 +119,7 @@ export function VibeGrid({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setVisibleCount(prev => prev + LOAD_MORE_INCREMENT)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-full text-zinc-400 hover:text-white hover:border-white/20 transition-all text-xs font-bold uppercase tracking-widest"
+            className="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-full text-zinc-300 hover:text-white hover:border-white/20 transition-all text-xs font-bold uppercase tracking-widest"
           >
             <ChevronDown className="w-4 h-4" />
             Show more ({filteredImages.length - visibleCount} remaining)
