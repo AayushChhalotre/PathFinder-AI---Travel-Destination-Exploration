@@ -12,6 +12,17 @@ coverage/
 
 # Research and Context
 Research and Product docs/
+Coding Agent reference Docs/
+PATHFINDER_CONTEXT.md
+
+# Office and Documentation (Non-essential)
+*.docx
+*.pptx
+*.pdf
+
+# Screenshots and junk images
+screenshot*
+capture*
 
 # Firebase config (contains API keys)
 firebase-applet-config.json
