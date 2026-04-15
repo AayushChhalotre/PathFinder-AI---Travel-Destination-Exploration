@@ -12,6 +12,7 @@ export interface SocialMediaPost {
 export interface TravelerInsight {
   type: 'do' | 'dont' | 'tip';
   content: string;
+  tipType?: 'tip' | 'avoid' | 'alert';
 }
 
 export interface PopularActivity {
@@ -30,6 +31,9 @@ export interface Destination {
   vibes: Vibe[];
   priceBand: 'budget' | 'moderate' | 'luxury';
   priceINR: number;
+  costBasis?: 'per_person' | 'total';
+  niche_occasions?: string[];
+  popularity_index?: number;
   travelHours: number;
   description: string;
   rationale: string;
@@ -49,6 +53,7 @@ export interface ItineraryActivity {
   iconName: string;
   images?: string[];
   notes?: string;
+  costINR?: number;
 }
 
 export interface ItineraryDay {
@@ -108,7 +113,6 @@ export interface UserProfile {
   location?: string;
   lat?: number;
   lng?: number;
-  travelGoal?: string;
   workType?: 'desk' | 'active' | 'hybrid';
   travelStyle?: 'solo' | 'couple' | 'family';
   interests?: string[];
@@ -122,4 +126,13 @@ export interface VibeImage {
   vibes: Vibe[];
   locationTag?: string;
   status?: 'popular' | 'trending' | 'niche' | 'new' | 'budget';
+}
+export interface HardConstraints {
+  budget_ceiling: number | null;
+  estimate_cost: number | null;
+  date_start: string | null;
+  date_end: string | null;
+  origin: string | null;
+  num_travellers: number | null;
+  trip_duration: number | null;
 }

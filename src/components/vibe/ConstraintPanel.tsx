@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { IndianRupee, Clock, Calendar, ArrowRight, Info, CalendarDays, MapPin, Briefcase, Compass } from 'lucide-react';
+import { EstimatedCost } from '../ui/EstimatedCost';
 
 export interface UserProfile {
   location: string;
-  travelGoal: string;
   lat?: number;
   lng?: number;
 }
@@ -15,6 +15,8 @@ interface ConstraintPanelProps {
   tripDays: number;
   startDate: string;
   endDate: string;
+  numTravellers: number;
+  budgetBasis: 'per_person' | 'total';
   profile: UserProfile;
   onBudgetChange: (val: number) => void;
   onMaxHoursChange: (val: number) => void;
@@ -36,6 +38,8 @@ export function ConstraintPanel({
   tripDays,
   startDate,
   endDate,
+  numTravellers,
+  budgetBasis,
   onBudgetChange,
   onMaxHoursChange,
   onTripDaysChange,
@@ -57,7 +61,7 @@ export function ConstraintPanel({
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="space-y-10 pt-8 border-t border-white/10"
     >
-      {/* Guest Details (Start Point & Trip Purpose) */}
+      {/* Guest Details (Start Point) */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
@@ -79,19 +83,6 @@ export function ConstraintPanel({
               Locate Me
             </button>
           </div>
-        </div>
-        <div className="space-y-4">
-          <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
-            <Compass className="w-4 h-4 text-amber-400" />
-            Trip Purpose / Vibe Goal
-          </label>
-          <input
-            type="text"
-            value={profile.travelGoal}
-            onChange={(e) => onProfileChange({ ...profile, travelGoal: e.target.value })}
-            placeholder="e.g. Digital Detox, Adventure, Deep Focus"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all placeholder:text-white/20"
-          />
         </div>
       </div>
 
@@ -135,7 +126,7 @@ export function ConstraintPanel({
               Budget Cap (INR)
             </label>
             <span className="text-white font-display font-medium tabular-nums">
-              ₹{budget.toLocaleString()}
+              <EstimatedCost amountINR={budget} costBasis={budgetBasis} numTravellers={numTravellers} textClassName="text-white" />
             </span>
           </div>
           <input

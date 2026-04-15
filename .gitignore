@@ -26,3 +26,18 @@ capture*
 
 # Firebase config (contains API keys)
 firebase-applet-config.json
+
+# Agent Specific
+.cursor/
+.cursorrules
+.mcp.json
+.opencode.json
+.vscode/
+.windsurfrules
+.claude/
+
+# Temporary / Junk
+scratch/
+graphify-out/
+playwright-report/
+test-results/

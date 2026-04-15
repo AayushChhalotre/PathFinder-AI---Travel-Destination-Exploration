@@ -5,10 +5,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Compass, 
-  ChevronRight, 
-  IndianRupee, 
+import {
+  Compass,
+  ChevronRight,
+  IndianRupee,
   RefreshCcw,
   ArrowRight,
   Mountain,
@@ -87,15 +87,25 @@ import { cn } from './lib/utils';
 import { VIBE_IMAGES, SCENARIOS, DESTINATIONS, VIBE_COLORS, OCCASIONS, TRANSPORT_OPTIONS } from './constants';
 import { AmbientBackground, VibeGrid, ScenarioCarousel, ConstraintPanel } from './components/vibe';
 import { useVibeSelection } from './hooks/useVibeSelection';
-import { Destination, Vibe, UserProfile, Occasion, TransportOption, Month, ItineraryActivity, Trip, TripMember } from './types';
+import { Destination, Vibe, UserProfile, Occasion, TransportOption, Month, ItineraryActivity, Trip, TripMember, HardConstraints } from './types';
 import { calculateDistance, estimateTravelTime, formatTravelTime } from './lib/geoUtils';
-import { GoogleGenAI } from "@google/genai";
 import { auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged } from './firebase';
 import { doc, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs, addDoc, getDocFromServer } from 'firebase/firestore';
 
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { SplitEntryScreen } from './pages/SplitEntryScreen';
+import { VibeDiscovery } from './pages/VibeDiscovery';
+import { ConstraintDiscovery } from './pages/ConstraintDiscovery';
+import { CandidateResults } from './pages/CandidateResults.tsx';
+import { VibeCandidates } from './pages/VibeCandidates';
+
 import { ICON_MAP } from './lib/icons';
+import { generateDestinationRationaleSentence } from './lib/gemini';
+
+import { intentGraph } from './lib/intentGraph';
 
 import { SafeImage, ImageCarousel } from './components/ui/ImageAssets';
+import { SessionStateBar } from './components/ui/SessionStateBar';
 import { WeatherDisplay } from './components/itinerary/WeatherDisplay';
 
 
@@ -106,34 +116,19 @@ export default function App() {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [selectedOccasionIds, setSelectedOccasionIds] = useState<string[]>([]);
   const [budget, setBudget] = useState<number>(300000);
-  const [maxHours, setMaxHours] = useState<number>(24);
   const [tripDays, setTripDays] = useState<number>(4);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedTransportId, setSelectedTransportId] = useState<string | null>(null);
+  const [numTravellers, setNumTravellers] = useState<number>(2);
+  const [hardConstraints, setHardConstraints] = useState<HardConstraints | null>(null);
+  const [significantInteractions, setSignificantInteractions] = useState<number>(0);
+  const [origin, setOrigin] = useState<string | null>(null);
+  const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [originPromptDismissed, setOriginPromptDismissed] = useState<boolean>(false);
+  const [showOriginPanel, setShowOriginPanel] = useState<boolean>(false);
+  const [rationaleCache, setRationaleCache] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (startDate && tripDays) {
-      const start = new Date(startDate);
-      const end = new Date(start);
-      end.setDate(start.getDate() + tripDays - 1);
-      const newEndStr = end.toISOString().split('T')[0];
-      if (endDate !== newEndStr) {
-        setEndDate(newEndStr);
-      }
-    }
-  }, [startDate, tripDays]);
-
-  const handleEndDateChange = (val: string) => {
-    setEndDate(val);
-    if (startDate) {
-      const start = new Date(startDate);
-      const end = new Date(val);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      setTripDays(Math.max(1, diffDays));
-    }
-  };
   const [selectedSubOption, setSelectedSubOption] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<Month>('April');
   const [selectedDestinationForItinerary, setSelectedDestinationForItinerary] = useState<Destination | null>(null);
@@ -152,7 +147,124 @@ export default function App() {
     interests: []
   });
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [pendingDestination, setPendingDestination] = useState<Destination | null>(null);
+
+  // 1. Sync App -> Intent Graph (Outgoing)
+  useEffect(() => {
+    intentGraph.setHardConstraints({
+      budget_ceiling: budget,
+      num_travellers: numTravellers,
+      origin: origin,
+      date_start: startDate || null,
+      date_end: endDate || null
+    });
+  }, [budget, numTravellers, origin, startDate, endDate]);
+
+  useEffect(() => {
+    if (selectedMonth) {
+      intentGraph.updateSoftPreference('travel_month', selectedMonth);
+    }
+  }, [selectedMonth]);
+
+  // 2. Sync Intent Graph -> App (Incoming)
+  useEffect(() => {
+    // Single subscription for all intent changes
+    return intentGraph.subscribe((state) => {
+      // Use functional updates to ensure we always have latest state
+      // and only set state if values actually differ to avoid loops
+
+      if (state.hard.budget_ceiling !== null) {
+        setBudget(prev => state.hard.budget_ceiling !== prev ? state.hard.budget_ceiling! : prev);
+      }
+      if (state.hard.num_travellers !== null) {
+        setNumTravellers(prev => state.hard.num_travellers !== prev ? state.hard.num_travellers! : prev);
+      }
+      if (state.hard.origin !== null) {
+        setOrigin(prev => state.hard.origin !== prev ? state.hard.origin : prev);
+      }
+      if (state.soft.travel_month !== null) {
+        setSelectedMonth(prev => state.soft.travel_month !== prev ? state.soft.travel_month as Month : prev);
+      }
+
+      if (state.hard.date_start !== null) {
+        setStartDate(prev => {
+          if (state.hard.date_start === prev) return prev;
+
+          // Recalculate tripDays if date_end also exists
+          if (state.hard.date_end) {
+            const start = new Date(state.hard.date_start!);
+            const end = new Date(state.hard.date_end);
+            const diffTime = Math.abs(end.getTime() - start.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            setTripDays(Math.max(1, diffDays));
+          }
+          return state.hard.date_start!;
+        });
+      }
+
+      if (state.hard.date_end !== null) {
+        setEndDate(prev => {
+          if (state.hard.date_end === prev) return prev;
+
+          // Recalculate tripDays if date_start also exists
+          if (state.hard.date_start) {
+            const start = new Date(state.hard.date_start);
+            const end = new Date(state.hard.date_end!);
+            const diffTime = Math.abs(end.getTime() - start.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            setTripDays(Math.max(1, diffDays));
+          }
+          return state.hard.date_end!;
+        });
+      }
+    });
+  }, []); // Run once on mount
+
+  // Derived Hard Constraints for components
+  const activeHardConstraints = useMemo(() => ({
+    budget_ceiling: budget,
+    date_start: startDate,
+    date_end: endDate,
+    origin: origin,
+    num_travellers: numTravellers
+  }), [budget, startDate, endDate, origin, numTravellers]);
+
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+    if (startDate) {
+      const start = new Date(startDate);
+      const end = new Date(val);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      setTripDays(Math.max(1, diffDays));
+    }
+  };
+
+
+  const bumpSignificantInteractions = () => {
+    setSignificantInteractions((prev) => Math.min(3, prev + 1));
+  };
+
+  const moodTagsSorted = useMemo(() => [...selectedVibes].sort(), [selectedVibes]);
+  const moodTagsKey = useMemo(() => moodTagsSorted.join('_'), [moodTagsSorted]);
+  const occasionTags = useMemo(
+    () => OCCASIONS.filter(o => selectedOccasionIds.includes(o.id)).map(o => o.label),
+    [selectedOccasionIds]
+  );
+
+  useEffect(() => {
+    if (significantInteractions >= 3 && !originPromptDismissed && origin === null) {
+      setShowOriginPanel(true);
+    }
+  }, [significantInteractions, originPromptDismissed, origin]);
+
+  useEffect(() => {
+    if (location.pathname === '/discover/vibe/candidates') {
+      setShowResults(true);
+    }
+  }, [location.pathname]);
 
   // Auth State Listener
   useEffect(() => {
@@ -182,7 +294,6 @@ export default function App() {
               location: data.location || prev.location,
               lat: data.lat || prev.lat,
               lng: data.lng || prev.lng,
-              travelGoal: data.travelGoal || prev.travelGoal,
               workType: data.workType || prev.workType,
               travelStyle: data.travelStyle || prev.travelStyle,
               interests: data.interests || prev.interests
@@ -208,11 +319,11 @@ export default function App() {
       const result = await signInWithPopup(auth, googleProvider);
       const loggedInUser = result.user;
       setUser(loggedInUser);
-      
+
       // Check if profile exists, if not create it
       const docRef = doc(db, 'users', loggedInUser.uid);
       const docSnap = await getDoc(docRef);
-      
+
       if (!docSnap.exists()) {
         await setDoc(docRef, {
           uid: loggedInUser.uid,
@@ -262,7 +373,7 @@ export default function App() {
     if (user) {
       saveProfileToFirestore(profile);
     }
-    
+
     if (pendingDestination) {
       // If we were in the middle of planning, proceed now
       if (!profile.location || !profile.profession) {
@@ -285,7 +396,7 @@ export default function App() {
         // Check if profile exists, if not create it
         const docRef = doc(db, 'users', currentUser.uid);
         const docSnap = await getDoc(docRef);
-        
+
         if (!docSnap.exists()) {
           await setDoc(docRef, {
             uid: currentUser.uid,
@@ -308,7 +419,7 @@ export default function App() {
         createdAt: serverTimestamp(),
         members: tripData.members || [{ uid: currentUser.uid, email: currentUser.email, displayName: currentUser.displayName, photoURL: currentUser.photoURL }]
       };
-      
+
       const docRef = await addDoc(collection(db, 'trips'), newTrip);
       const savedTrip = { ...newTrip, id: docRef.id } as Trip;
       setSavedTrips(prev => [savedTrip, ...prev]);
@@ -338,6 +449,24 @@ export default function App() {
     }
   };
 
+  const handleOriginDismiss = () => {
+    setOrigin(null);
+    setOriginCoords(null);
+    setOriginPromptDismissed(true);
+    setShowOriginPanel(false);
+    setShowResults(true);
+    navigate('/discover/vibe/candidates');
+  };
+
+  const handleOriginSubmit = (nextOrigin: string, coords?: { lat: number; lng: number } | null) => {
+    setOrigin(nextOrigin);
+    setOriginCoords(coords ?? null);
+    setOriginPromptDismissed(true);
+    setShowOriginPanel(false);
+    setShowResults(true);
+    navigate('/discover/vibe/candidates');
+  };
+
   const SELECTION_LIMIT = 5;
 
   // Dynamic Visual Anchors logic
@@ -347,7 +476,7 @@ export default function App() {
       return VIBE_IMAGES;
     }
     // Filter images that match ANY of the selected vibes
-    return VIBE_IMAGES.filter(img => 
+    return VIBE_IMAGES.filter(img =>
       img.vibes.some(v => selectedVibes.includes(v))
     );
   }, [selectedVibes]);
@@ -363,6 +492,7 @@ export default function App() {
       setSelectedVibes(prev => prev.filter(v => !vibes.includes(v)));
     } else {
       if (selectedImageIds.length < SELECTION_LIMIT) {
+        bumpSignificantInteractions();
         setSelectedImageIds(prev => [...prev, id]);
         // Add unique vibes from this image
         setSelectedVibes(prev => {
@@ -373,16 +503,21 @@ export default function App() {
     }
   };
 
-  const selectScenario = (id: string, vibe: Vibe) => {
-    setSelectedScenarioId(id);
-    if (!selectedVibes.includes(vibe)) {
-      setSelectedVibes(prev => [...prev, vibe]);
+  const selectScenario = (id: string | null) => {
+    if (id && id !== selectedScenarioId) {
+      bumpSignificantInteractions();
+      const scenario = SCENARIOS.find(s => s.id === id);
+      if (scenario && !selectedVibes.includes(scenario.vibe)) {
+        setSelectedVibes(prev => [...prev, scenario.vibe]);
+      }
     }
+    setSelectedScenarioId(id);
   };
 
   const toggleOccasion = (id: string) => {
     setSelectedOccasionIds(prev => {
       if (prev.includes(id)) return prev.filter(i => i !== id);
+      bumpSignificantInteractions();
       if (prev.length < 3) return [...prev, id];
       return prev;
     });
@@ -399,19 +534,31 @@ export default function App() {
   // Ranking logic
   const filteredDestinations = useMemo(() => {
     // Calculate effective constraints based on occasions
-    let effectiveBudget = budget;
-    let effectiveMaxHours = maxHours;
-    
+    let effectiveBudget = hardConstraints?.budget_ceiling ?? budget;
+    let effectiveMaxHours = 24; // Default to 24 since input was removed by Instruction 5
+
     if (selectedOccasionIds.length > 0) {
       const selectedOccasions = OCCASIONS.filter(o => selectedOccasionIds.includes(o.id));
       // Average out the multipliers for a combined vibe
       const avgMultiplier = selectedOccasions.reduce((acc, o) => acc + o.budgetMultiplier, 0) / selectedOccasions.length;
       effectiveBudget = budget * avgMultiplier;
-      
+
       // If any occasion is long-duration, boost max hours
       const maxDays = Math.max(...selectedOccasions.map(o => o.durationDays));
-      if (maxDays > 10) effectiveMaxHours = Math.max(maxHours, 18);
+      if (maxDays > 10) effectiveMaxHours = 24; // Set a high but fixed ceiling
     }
+
+    const NICHE_OCCASION_LABELS = new Set([
+      'Architecture & Design',
+      'Historical Routes',
+      'Cultural Immersion',
+      'Literary Journey',
+      'Wildlife & Ecology',
+    ]);
+
+    const nicheIntentDetected = OCCASIONS
+      .filter(o => selectedOccasionIds.includes(o.id))
+      .some(o => NICHE_OCCASION_LABELS.has(o.label));
 
     return DESTINATIONS.filter(dest => {
       const withinBudget = dest.priceINR <= effectiveBudget;
@@ -439,12 +586,6 @@ export default function App() {
         if (b.vibes.includes('cultural')) bScore += 0.3;
       }
 
-      // Interests boosting
-      profile.interests?.forEach(interest => {
-        if (a.vibes.includes(interest as Vibe)) aScore += 0.2;
-        if (b.vibes.includes(interest as Vibe)) bScore += 0.2;
-      });
-
       // Transport Preference boosting
       if (selectedTransportId === 'space') {
         if (a.vibes.some(v => ['futuristic', 'ethereal', 'mysterious'].includes(v))) aScore += 1.0;
@@ -464,9 +605,24 @@ export default function App() {
         if (b.vibes.includes('luxurious')) bScore += 0.6;
       }
 
-      return bScore - aScore;
+      const aPopularity = a.popularity_index ?? 0.5;
+      const bPopularity = b.popularity_index ?? 0.5;
+
+      const aAdjusted =
+        nicheIntentDetected && aPopularity > 0.6
+          ? aScore * (1 - (0.4 * aPopularity))
+          : aScore;
+      const bAdjusted =
+        nicheIntentDetected && bPopularity > 0.6
+          ? bScore * (1 - (0.4 * bPopularity))
+          : bScore;
+
+      return bAdjusted - aAdjusted;
     });
-  }, [selectedVibes, budget, maxHours, profile, selectedOccasionIds, selectedTransportId, selectedSubOption]);
+  }, [selectedVibes, budget, profile, selectedOccasionIds, selectedTransportId, selectedSubOption, hardConstraints]);
+
+  // For the rationale effect, we need the ranked list
+  const filteredDestinationsByRanking = filteredDestinations;
 
   // Debounce effect for results
   useEffect(() => {
@@ -479,18 +635,17 @@ export default function App() {
 
   const generateAiInsight = async () => {
     if (filteredDestinations.length === 0) return;
-    
+
     setIsGeneratingInsight(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
       const topDestinations = filteredDestinations.slice(0, 3).map(d => d.name).join(", ");
       const occasionLabels = OCCASIONS.filter(o => selectedOccasionIds.includes(o.id)).map(o => o.label).join(", ");
-      
+
       const transportLabel = TRANSPORT_OPTIONS.find(t => t.id === selectedTransportId)?.label || 'General Travel';
       const transportSub = selectedSubOption ? ` (${selectedSubOption})` : '';
-      
+
       const prompt = `You are the Pathfinder AI Travel Strategist. 
-      The user has a travel goal of: "${profile.travelGoal || 'Not specified'}". Their work nature is ${profile.workType}. 
+      Their work nature is ${profile.workType}. 
       Their travel style is ${profile.travelStyle} and interests include ${profile.interests?.join(', ')}.
       They selected vibes like: ${selectedVibes.join(", ")}.
       The occasion for this trip is: ${occasionLabels || 'General Leisure'}.
@@ -501,12 +656,8 @@ export default function App() {
       Focus on the psychological "why" (e.g., "Because your desk-bound routine craves the stark silence of the Himalayas").
       Keep it punchy and evocative.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-      });
-
-      setAiInsight(response.text || null);
+      const insight = await generateDestinationRationaleSentence(prompt);
+      setAiInsight(insight);
     } catch (error) {
       console.error("AI Insight Error:", error);
       setAiInsight("Your unique pattern suggests a deep need for these specific landscapes.");
@@ -526,382 +677,134 @@ export default function App() {
     setAiInsight(null);
   }, [selectedVibes, profile]);
 
+  // --- INTENT GRAPH & RATIONALE SYNC ---
+
+  useEffect(() => {
+    intentGraph.updateSoftPreference('mood_tags', selectedVibes.map(v => v));
+  }, [selectedVibes]);
+
+  useEffect(() => {
+    const labels = OCCASIONS
+      .filter(o => selectedOccasionIds.includes(o.id))
+      .map(o => o.label);
+    intentGraph.updateSoftPreference('occasion_tags', labels);
+  }, [selectedOccasionIds]);
+
+  const buildRationalePrompt = (destinationName: string) => {
+    const mood = moodTagsSorted;
+    const occ = occasionTags;
+    const travelMonth = selectedMonth || 'any month';
+    return `Generate a single sentence explaining why ${destinationName} matches a traveler who selected these vibes: ${mood.join(', ')} and these occasions: ${occ.join(', ')} in ${travelMonth || 'any month'}.
+   
+   The sentence must:
+   - Start with 'Because you'
+   - Reference at least one specific tag by name
+   - Be under 20 words
+   - Return only the sentence. No preamble.`;
+  };
+
+  const getRationaleCacheKey = (destinationId: string) =>
+    `${destinationId}_${moodTagsKey}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!showResults || moodTagsSorted.length === 0) return;
+
+      const toGenerate = filteredDestinations.slice(0, 12);
+
+      for (const dest of toGenerate) {
+        const key = getRationaleCacheKey(dest.id);
+        if (rationaleCache[key]) continue;
+
+        try {
+          const prompt = buildRationalePrompt(dest.name);
+          const sentence = await generateDestinationRationaleSentence(prompt);
+          if (cancelled) return;
+          setRationaleCache(prev => ({ ...prev, [key]: sentence.trim() }));
+        } catch (e) {
+          // Fallback handled in component
+        }
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [showResults, filteredDestinationsByRanking, moodTagsKey, selectedMonth, occasionTags]);
+
   return (
-    <div className="relative min-h-screen w-full flex flex-col md:flex-row overflow-hidden">
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden">
       {/* Dynamic Background — morphs based on active vibe */}
       <AmbientBackground activeVibe={activeVibe} />
 
-      {/* Main Canvas */}
-      <main className={cn(
-        "flex-1 h-screen overflow-y-auto no-scrollbar p-4 md:p-12 transition-all duration-700 ease-in-out",
-        showResults ? "md:mr-0" : "md:mr-[100px]"
-      )}>
-        <header className="flex justify-between items-center mb-12">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <Compass className="text-black w-6 h-6" />
-            </div>
-            <h1 className="font-display text-2xl font-bold tracking-tight">PATHFINDER</h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors text-sm font-medium bg-white/5 px-4 py-2 rounded-full border border-white/10 overflow-hidden"
-            >
-              {user ? (
-                <img src={user.photoURL} alt={user.displayName} className="w-5 h-5 rounded-full border border-white/20" />
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-              <span className="truncate max-w-[100px]">
-                {user ? user.displayName : (profile.profession || "Set Profile")}
-              </span>
-            </button>
-            {(selectedImageIds.length > 0 || selectedScenarioId) && (
-              <button 
-                onClick={resetAll}
-                className="flex items-center gap-2 text-zinc-300 hover:text-white transition-colors text-sm font-medium"
-              >
-                <RefreshCcw className="w-4 h-4" />
-                Reset
-              </button>
-            )}
-          </div>
-        </header>
-
-        <div className="max-w-7xl mx-auto space-y-16 pb-32 px-4">
-          {/* Scenarios Carousel */}
-          <ScenarioCarousel
-            selectedScenarioId={selectedScenarioId}
-            onSelect={selectScenario}
-          />
-
-          {/* Occasions Selection */}
-          <section>
-            <div className="flex justify-between items-end mb-6">
-              <h2 className="font-display text-lg text-zinc-200 uppercase tracking-widest font-medium">What's the occasion?</h2>
-              <p className="text-xs text-zinc-200">Select up to 3</p>
-            </div>
-            <div className="flex flex-wrap gap-3 pb-4">
-              {OCCASIONS.map((occ) => {
-                const Icon = ICON_MAP[occ.iconName] || MapIcon;
-                const isSelected = selectedOccasionIds.includes(occ.id);
-                return (
-                  <motion.button
-                    key={occ.id}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => toggleOccasion(occ.id)}
-                    className={cn(
-                      "flex-shrink-0 px-5 py-3 rounded-xl border transition-all duration-300 flex items-center gap-3",
-                      isSelected 
-                        ? "bg-white text-black border-white shadow-lg" 
-                        : "bg-white/5 text-zinc-300 border-white/10 hover:border-white/20"
-                    )}
-                  >
-                    <Icon className={cn("w-4 h-4", isSelected ? "text-black" : "text-zinc-200")} />
-                    <span className="text-sm font-medium whitespace-nowrap">{occ.label}</span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Time of Year Selection */}
-          <section>
-            <div className="flex justify-between items-end mb-6">
-              <h2 className="font-display text-lg text-zinc-200 uppercase tracking-widest font-medium">Time of Year</h2>
-              <p className="text-xs text-zinc-200">Seasonality & Climate</p>
-            </div>
-            <div className="flex flex-wrap gap-3 pb-4">
-              {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month) => {
-                const isSelected = selectedMonth === month;
-                return (
-                  <motion.button
-                    key={month}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedMonth(month as Month)}
-                    className={cn(
-                      "flex-shrink-0 px-5 py-3 rounded-xl border transition-all duration-300 flex items-center gap-3",
-                      isSelected 
-                        ? "bg-white text-black border-white shadow-lg" 
-                        : "bg-white/5 text-zinc-300 border-white/10 hover:border-white/20"
-                    )}
-                  >
-                    <Calendar className={cn("w-4 h-4", isSelected ? "text-black" : "text-zinc-200")} />
-                    <span className="text-sm font-medium whitespace-nowrap">{month}</span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Transport Preference */}
-          <section>
-            <div className="flex justify-between items-end mb-6">
-              <div className="space-y-1">
-                <h2 className="font-display text-lg text-zinc-200 uppercase tracking-widest font-medium">Mode of Transport</h2>
-                {selectedTransportId && (
-                  <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                    <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
-                    Selected: {TRANSPORT_OPTIONS.find(t => t.id === selectedTransportId)?.label} 
-                    {selectedSubOption && ` • ${selectedSubOption}`}
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-zinc-200">How do you prefer to travel?</p>
-            </div>
-            <div className="space-y-6">
-              <div className="flex flex-wrap gap-3 pb-2">
-                {TRANSPORT_OPTIONS.map((opt) => {
-                  const Icon = ICON_MAP[opt.iconName] || Plane;
-                  const isSelected = selectedTransportId === opt.id;
-                  return (
-                    <motion.button
-                      key={opt.id}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedTransportId(opt.id);
-                        setSelectedSubOption(null);
-                      }}
-                      className={cn(
-                        "flex-shrink-0 px-6 py-4 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-2 min-w-[100px]",
-                        isSelected 
-                          ? "bg-white text-black border-white shadow-lg" 
-                          : "bg-white/5 text-zinc-300 border-white/10 hover:border-white/20"
-                      )}
-                    >
-                      <Icon className={cn("w-6 h-6", isSelected ? "text-black" : "text-zinc-200")} />
-                      <span className="text-xs font-bold uppercase tracking-tighter">{opt.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {selectedTransportId && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-wrap gap-2"
-                >
-                  {TRANSPORT_OPTIONS.find(o => o.id === selectedTransportId)?.subOptions?.map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() => setSelectedSubOption(sub)}
-                      className={cn(
-                        "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all",
-                        selectedSubOption === sub
-                          ? "bg-white/20 text-white border-white/40"
-                          : "bg-white/5 text-zinc-200 border-white/10 hover:border-white/20"
-                      )}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </div>
-          </section>
-
-          {/* Visual Vibe Grid — with magnetic hover & AI intent badge */}
-          <VibeGrid
-            selectedVibes={selectedVibes}
-            selectedImageIds={selectedImageIds}
-            onToggle={toggleImage}
-            aiIntent={null}
-            isParsingIntent={false}
-          />
-
-          {/* Constraints Scaffolding — ephemeral panel */}
-          <AnimatePresence>
-            {(selectedImageIds.length >= 1 || selectedScenarioId || selectedVibes.length >= 1 || selectedOccasionIds.length >= 1) && (
-              <ConstraintPanel
-                budget={budget}
-                maxHours={maxHours}
-                tripDays={tripDays}
-                startDate={startDate}
-                endDate={endDate}
-                onBudgetChange={setBudget}
-                onMaxHoursChange={setMaxHours}
-                onTripDaysChange={setTripDays}
-                onStartDateChange={setStartDate}
-                onEndDateChange={handleEndDateChange}
-                onDiscover={() => setShowResults(true)}
-                profile={profile}
-                onProfileChange={setProfile}
-                onGetLocation={handleGetLocation}
-              />
-            )}
-          </AnimatePresence>
+      {/* Persistent Session State Bar */}
+      {location.pathname !== '/' && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] w-full max-w-3xl px-6">
+          <SessionStateBar />
         </div>
-      </main>
+      )}
 
-      {/* Results Panel */}
-      <AnimatePresence>
-        {showResults && (
-          <motion.aside 
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed md:relative top-0 right-0 w-full md:w-[400px] bg-black/40 backdrop-blur-3xl border-l border-white/10 h-screen flex flex-col z-50"
-          >
-            <div className="p-6 border-b border-white/10 flex justify-between items-center">
-              <div className="space-y-1">
-                <h2 className="font-display text-xl font-bold">Candidates</h2>
-                {profile.profession && (
-                  <p className="text-[10px] text-amber-400 uppercase tracking-widest font-bold">
-                    Personalized for {profile.profession}
-                  </p>
-                )}
-                {selectedTransportId && (
-                  <p className="text-[10px] text-emerald-400 uppercase tracking-widest font-bold flex items-center gap-1">
-                    <Plane className="w-3 h-3" />
-                    {TRANSPORT_OPTIONS.find(t => t.id === selectedTransportId)?.label} 
-                    {selectedSubOption && ` • ${selectedSubOption}`}
-                  </p>
-                )}
-              </div>
-              <button 
-                onClick={() => setShowResults(false)}
-                className="p-2 hover:bg-white/10 rounded-full"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+      <Routes>
+        <Route path="/" element={<SplitEntryScreen />} />
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
-              {/* AI Insight Section */}
-              <AnimatePresence mode="wait">
-                {(aiInsight || isGeneratingInsight) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="bg-white/10 border border-white/20 rounded-3xl p-6 relative overflow-hidden group"
-                  >
-                    <div className="absolute top-0 right-0 p-4 opacity-20">
-                      <BrainCircuit className="w-12 h-12 text-white" />
-                    </div>
-                    <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-amber-400 mb-3 flex items-center gap-2">
-                      <Sparkles className="w-3 h-3" />
-                      Pathfinder Insight
-                    </h3>
-                    {isGeneratingInsight ? (
-                      <div className="space-y-2">
-                        <div className="h-3 bg-white/10 rounded-full w-full animate-pulse" />
-                        <div className="h-3 bg-white/10 rounded-full w-4/5 animate-pulse" />
-                        <div className="h-3 bg-white/10 rounded-full w-3/4 animate-pulse" />
-                      </div>
-                    ) : (
-                      <p className="text-sm text-zinc-200 leading-relaxed font-medium">
-                        {aiInsight}
-                      </p>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        <Route path="/discover/vibe" element={
+          <VibeDiscovery
+            user={user}
+            profile={profile}
+            onShowProfile={() => setShowProfileModal(true)}
+            onOriginSubmit={handleOriginSubmit}
+            onNavigateToCandidates={() => navigate('/discover/vibe/candidates')}
+          />
+        } />
 
-              {isDebouncing ? (
-                <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-50">
-                  <RefreshCcw className="w-8 h-8 animate-spin" />
-                  <p className="text-sm font-medium uppercase tracking-widest">Recalculating Intent...</p>
-                </div>
-              ) : filteredDestinations.length > 0 ? (
-                filteredDestinations.map((dest, idx) => (
-                  <motion.div
-                    key={dest.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="group relative bg-white/5 rounded-2xl overflow-hidden border border-white/5 hover:border-white/20 transition-all"
-                  >
-                    <div className="aspect-video overflow-hidden relative">
-                      {dest.images && dest.images.length > 0 ? (
-                        <ImageCarousel images={dest.images} alt={dest.name} />
-                      ) : (
-                        <SafeImage 
-                          src={dest.image} 
-                          alt={dest.name} 
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                      )}
-                    </div>
-                    <div className="p-5 space-y-4">
-                      <div>
-                        <h3 className="font-display text-xl font-bold">{dest.name}</h3>
-                        <div className="flex items-center gap-1 text-zinc-200 text-sm">
-                          <MapPin className="w-3 h-3" />
-                          {dest.location}
-                        </div>
-                      </div>
+        <Route path="/discover/vibe/candidates" element={
+          <VibeCandidates
+            user={user}
+            profile={profile}
+            onShowProfile={() => setShowProfileModal(true)}
+            onExplore={handlePlanItinerary}
+          />
+        } />
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-zinc-300">
-                            <IndianRupee className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Budget Cap</span>
-                            <Info className="w-2.5 h-2.5 opacity-50" />
-                          </div>
-                          <p className="text-sm font-display font-medium">₹{dest.priceINR.toLocaleString()}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-zinc-300">
-                            <Navigation className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Distance</span>
-                            <Info className="w-2.5 h-2.5 opacity-50" />
-                          </div>
-                          <p className="text-sm font-display font-medium">
-                            {profile.lat && profile.lng && dest.lat && dest.lng 
-                              ? `${Math.round(calculateDistance(profile.lat, profile.lng, dest.lat, dest.lng))} km`
-                              : 'Location not set'}
-                          </p>
-                        </div>
-                      </div>
+        <Route path="/discover/constraints" element={
+          <ConstraintDiscovery
+            user={user}
+            profile={profile}
+            onShowProfile={() => setShowProfileModal(true)}
+            onSaveConstraints={(constraints) => {
+              setHardConstraints(constraints);
+              navigate('/discover/constraints/candidates');
+            }}
+          />
+        } />
+        <Route path="/discover/constraints/candidates" element={
+          <CandidateResults
+            user={user}
+            profile={profile}
+            onShowProfile={() => setShowProfileModal(true)}
+            destinations={DESTINATIONS}
+            hardConstraints={activeHardConstraints}
+            numTravellers={numTravellers}
+            origin={origin}
+            onPlanItinerary={handlePlanItinerary}
+          />
+        } />
+      </Routes>
 
-                      <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                        <p className="text-xs text-zinc-200 leading-relaxed italic">
-                          <Sparkles className="w-3 h-3 inline mr-1 text-amber-400" />
-                          {dest.rationale}
-                        </p>
-                      </div>
-
-                      <button 
-                        onClick={() => handlePlanItinerary(dest)}
-                        className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all duration-300 flex items-center justify-center gap-2"
-                      >
-                        <Calendar className="w-4 h-4" />
-                        Plan Itinerary
-                      </button>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-50">
-                  <Compass className="w-12 h-12" />
-                  <p className="text-sm font-medium">No destinations match your current constraints.</p>
-                </div>
-              )}
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* Profile Modal */}
+      {/* Global Overlays (Profile & Itinerary) */}
       <AnimatePresence>
         {showProfileModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowProfileModal(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -930,13 +833,13 @@ export default function App() {
                 <div className="space-y-6">
                   <div className="p-8 bg-white/5 rounded-3xl border border-white/10 text-center space-y-6">
                     <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto">
-                      <Sparkles className="w-8 h-8 text-amber-400" />
+                      <SparklesIcon className="w-8 h-8 text-amber-400" />
                     </div>
                     <div className="space-y-2">
                       <p className="text-lg font-bold text-white">Unlock Personalized Travel</p>
                       <p className="text-sm text-zinc-300 max-w-[280px] mx-auto">Sign in with Google to sync your profile, save itineraries, and get hyper-personalized AI insights.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={handleGoogleLogin}
                       className="w-full py-4 bg-white text-black rounded-2xl font-bold text-sm flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-xl shadow-white/5"
                     >
@@ -947,7 +850,6 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Left Column: Account Info */}
                   <div className="space-y-6">
                     <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-6">
                       <div className="flex items-center gap-4">
@@ -957,9 +859,9 @@ export default function App() {
                           <p className="text-xs text-zinc-300">{user.email}</p>
                         </div>
                       </div>
-                      
+
                       <div className="pt-4 border-t border-white/5">
-                        <button 
+                        <button
                           onClick={handleLogout}
                           className="w-full py-3 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2"
                         >
@@ -973,8 +875,8 @@ export default function App() {
                       <label className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest ml-1">Profession</label>
                       <div className="relative">
                         <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="e.g. Software Engineer"
                           value={profile.profession || ''}
                           onChange={(e) => setProfile(prev => ({ ...prev, profession: e.target.value }))}
@@ -986,7 +888,7 @@ export default function App() {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center ml-1">
                         <label className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Current Location</label>
-                        <button 
+                        <button
                           onClick={handleGetLocation}
                           className="text-[10px] text-amber-400 font-bold uppercase tracking-widest flex items-center gap-1 hover:text-amber-300 transition-colors"
                         >
@@ -996,8 +898,8 @@ export default function App() {
                       </div>
                       <div className="relative">
                         <MapIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="Where are you based?"
                           value={profile.location || ''}
                           onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
@@ -1010,12 +912,11 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Right Column: Preferences */}
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest ml-1">Work Nature</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button 
+                        <button
                           onClick={() => setProfile(prev => ({ ...prev, workType: 'desk' }))}
                           className={cn(
                             "py-3 rounded-xl border transition-all text-xs font-bold",
@@ -1024,7 +925,7 @@ export default function App() {
                         >
                           Desk-based
                         </button>
-                        <button 
+                        <button
                           onClick={() => setProfile(prev => ({ ...prev, workType: 'active' }))}
                           className={cn(
                             "py-3 rounded-xl border transition-all text-xs font-bold",
@@ -1044,7 +945,7 @@ export default function App() {
                           { id: 'couple', label: 'Couple', icon: Heart },
                           { id: 'family', label: 'Family', icon: Users }
                         ].map(style => (
-                          <button 
+                          <button
                             key={style.id}
                             onClick={() => setProfile(prev => ({ ...prev, travelStyle: style.id as any }))}
                             className={cn(
@@ -1070,11 +971,11 @@ export default function App() {
                           { id: 'minimalist', label: 'Arch', icon: Building },
                           { id: 'unplugged', label: 'Peace', icon: Wind }
                         ].map(interest => (
-                          <button 
+                          <button
                             key={interest.id}
                             onClick={() => {
                               const current = profile.interests || [];
-                              const next = current.includes(interest.id) 
+                              const next = current.includes(interest.id)
                                 ? current.filter(i => i !== interest.id)
                                 : [...current, interest.id];
                               setProfile(prev => ({ ...prev, interests: next }));
@@ -1091,9 +992,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={handleSaveProfile}
-                      disabled={false}
                       className={cn(
                         "w-full py-4 rounded-2xl font-bold mt-2 transition-all shadow-lg bg-white text-black hover:scale-[1.02] active:scale-[0.98] shadow-white/5"
                       )}
@@ -1107,12 +1007,12 @@ export default function App() {
               {user && savedTrips.length > 0 && (
                 <div className="mt-12 pt-12 border-t border-white/10">
                   <h4 className="font-display text-lg font-bold mb-6 flex items-center gap-2">
-                    <MapIcon className="w-5 h-5 text-indigo-400" />
+                    <MapPin className="w-5 h-5 text-indigo-400" />
                     Saved Itineraries
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {savedTrips.map(trip => (
-                      <div 
+                      <div
                         key={trip.id}
                         onClick={() => {
                           setSelectedDestinationForItinerary(trip.destination);
@@ -1131,18 +1031,13 @@ export default function App() {
                         <div className="p-3 flex items-center justify-between">
                           <div className="flex -space-x-2">
                             {trip.members.map((member, i) => (
-                              <img 
-                                key={i} 
-                                src={member.photoURL || `https://ui-avatars.com/api/?name=${member.displayName}`} 
+                              <img
+                                key={i}
+                                src={member.photoURL || `https://ui-avatars.com/api/?name=${member.displayName}`}
                                 alt={member.displayName}
                                 className="w-6 h-6 rounded-full border border-zinc-900"
                               />
                             ))}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-                              <Share2 className="w-3.5 h-3.5 text-zinc-200" />
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -1155,24 +1050,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Results Trigger */}
-      {!showResults && (selectedImageIds.length > 0 || selectedScenarioId) && (
-        <motion.div 
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="fixed bottom-6 left-6 right-6 md:hidden z-50"
-        >
-          <button
-            onClick={() => setShowResults(true)}
-            className="w-full bg-white text-black py-4 rounded-2xl font-bold shadow-2xl flex items-center justify-center gap-2"
-          >
-            View {filteredDestinations.length} Matches
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </motion.div>
-      )}
-
-      {/* Detailed Itinerary View */}
       <AnimatePresence>
         {selectedDestinationForItinerary && (
           <React.Suspense fallback={
@@ -1180,7 +1057,7 @@ export default function App() {
               <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
             </div>
           }>
-            <ItineraryPlanner 
+            <ItineraryPlanner
               destination={selectedDestinationForItinerary}
               onClose={() => setSelectedDestinationForItinerary(null)}
               occasion={OCCASIONS.find(o => selectedOccasionIds.includes(o.id))}
@@ -1188,7 +1065,11 @@ export default function App() {
               subOption={selectedSubOption}
               travelMonth={selectedMonth}
               tripDays={tripDays}
+              startDate={startDate}
+              endDate={endDate}
               profile={profile}
+              selectedVibes={selectedVibes}
+              numTravellers={numTravellers}
               user={user}
               onSaveTrip={handleSaveTrip}
             />

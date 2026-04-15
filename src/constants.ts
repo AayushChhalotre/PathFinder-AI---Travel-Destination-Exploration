@@ -17,6 +17,21 @@ export const SCENARIOS: Scenario[] = [
   { id: '14', label: 'Between dreams and reality', vibe: 'ethereal', iconName: 'Cloud' },
 ];
 
+export const MONTHS: { id: string, label: string }[] = [
+  { id: 'jan', label: 'January' },
+  { id: 'feb', label: 'February' },
+  { id: 'mar', label: 'March' },
+  { id: 'apr', label: 'April' },
+  { id: 'may', label: 'May' },
+  { id: 'jun', label: 'June' },
+  { id: 'jul', label: 'July' },
+  { id: 'aug', label: 'August' },
+  { id: 'sep', label: 'September' },
+  { id: 'oct', label: 'October' },
+  { id: 'nov', label: 'November' },
+  { id: 'dec', label: 'December' },
+];
+
 export const OCCASIONS: Occasion[] = [
   { id: 'o1', label: 'Honeymoon', durationDays: 10, groupSize: 2, budgetMultiplier: 2.5, iconName: 'Heart' },
   { id: 'o2', label: 'Solo Soul-Searching', durationDays: 14, groupSize: 1, budgetMultiplier: 1.0, iconName: 'User' },
@@ -28,6 +43,11 @@ export const OCCASIONS: Occasion[] = [
   { id: 'o8', label: 'Retirement Trip', durationDays: 30, groupSize: 2, budgetMultiplier: 1.4, iconName: 'Sunrise' },
   { id: 'o9', label: 'Photography Expedition', durationDays: 12, groupSize: 4, budgetMultiplier: 1.3, iconName: 'Camera' },
   { id: 'o10', label: 'Gastronomy Tour', durationDays: 6, groupSize: 2, budgetMultiplier: 1.9, iconName: 'Utensils' },
+  { id: 'o11', label: 'Architecture & Design', durationDays: 6, groupSize: 2, budgetMultiplier: 1.2, iconName: 'Building' },
+  { id: 'o12', label: 'Historical Routes', durationDays: 8, groupSize: 2, budgetMultiplier: 1.2, iconName: 'History' },
+  { id: 'o13', label: 'Cultural Immersion', durationDays: 10, groupSize: 2, budgetMultiplier: 1.25, iconName: 'Landmark' },
+  { id: 'o14', label: 'Literary Journey', durationDays: 7, groupSize: 2, budgetMultiplier: 1.15, iconName: 'StickyNote' },
+  { id: 'o15', label: 'Wildlife & Ecology', durationDays: 7, groupSize: 3, budgetMultiplier: 1.35, iconName: 'Palmtree' },
 ];
 
 export const VIBE_IMAGES: VibeImage[] = [
@@ -1124,8 +1144,8 @@ export const DESTINATIONS: Destination[] = [
     lng: 70.9160,
     travelerInsights: [
       { type: 'do', content: 'Take a camel safari and camp under the stars in the Sam Sand Dunes.' },
-      { type: 'dont', content: 'Don\'t miss the sunset from Vyas Chhatri for a panoramic view of the fort.' },
-      { type: 'tip', content: 'The fort is a living fort; explore the narrow lanes where people still reside.' }
+      { type: 'dont', tipType: 'tip', content: 'Don\'t miss the sunset from Vyas Chhatri for a panoramic view of the fort.' },
+      { type: 'tip', tipType: 'tip', content: 'The fort is a living fort; explore the narrow lanes where people still reside.' }
     ],
     socialMediaPosts: [
       { id: 'sj-1', platform: 'instagram', url: 'https://www.instagram.com/explore/tags/jaisalmer/', thumbnail: 'https://images.unsplash.com/photo-1577083165633-14ebcdb0f658?auto=format&fit=crop&w=400&q=80', author: '@desert_explorer', caption: 'Golden hour at the Golden City. 🏜️✨' },

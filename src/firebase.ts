@@ -1,9 +1,8 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
-// Use environment variables for secure production config.
-// These should be set in Netlify Environment Variables.
+// Configuration from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -13,28 +12,28 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Validate required environment variables to prevent runtime crashes.
-const missingKeys = Object.entries(firebaseConfig)
-  .filter(([_, value]) => !value)
-  .map(([key]) => `VITE_FIREBASE_${key.toUpperCase()}`);
+// Safety Check: Avoid crashing on initialization if keys are missing
+const isFirebaseConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-if (missingKeys.length > 0) {
-  console.error(
-    `[Firebase] CRITICAL: Missing environment variables: ${missingKeys.join(', ')}. ` +
-    `Ensure these are set in your Netlify dashboard with the VITE_ prefix.`
-  );
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+
+if (isFirebaseConfigValid) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error('[Firebase] Initialization error:', error);
+  }
+} else {
+  console.warn('[Firebase] Warning: Missing environment variables. Auth and Database features will be disabled.');
 }
 
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  console.error('[Firebase] Initialization failed:', error);
-}
-
-export const auth = getAuth(app!);
-export const db = getFirestore(app!);
+// Export auth/db as potentially undefined, or handle null-safety in components
+// Alternatively, export a proxy or a dummy if needed, but in this app, 
+// components should check if auth/db exists.
+export { app, auth, db };
 export const googleProvider = new GoogleAuthProvider();
-
 export { signInWithPopup, signOut, onAuthStateChanged };
-

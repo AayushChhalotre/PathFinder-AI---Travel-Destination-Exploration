@@ -1,59 +1,71 @@
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.warn("VITE_GEMINI_API_KEY is missing. Rationale/Intent generation will be disabled.");
+}
+
+const genAI = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export interface VibeIntentResult {
   suggestedVibe: string;
-  searchParameters: string[];
   emotionalTone: string;
-  rationale: string;
+  confidence: number;
 }
 
 /**
- * Sends the user's selected image context to Gemini and returns a structured
- * intent vector. This replaces hundreds of hard-coded if/else mapping rules.
+ * Decodes the user's travel vibe from selected visual anchors.
  */
 export async function parseVibeIntent(
-  selectedImageIds: string[],
-  imageVibes: Record<string, string[]>,
+  selectedImageIds: string[], 
+  imageVibes: Record<string, string[]>, 
   imageLocations: Record<string, string>
-): Promise<VibeIntentResult> {
-  const imageContext = selectedImageIds.map(id => ({
-    id,
-    vibes: imageVibes[id] || [],
-    location: imageLocations[id] || 'Unknown',
-  }));
-
-  const prompt = `You are the Pathfinder AI Vibe Analyst. A user is exploring travel destinations by clicking on atmospheric images.
-
-Here are the images they selected:
-${JSON.stringify(imageContext, null, 2)}
-
-Based on these selections, return a JSON object with EXACTLY these fields:
-- "suggestedVibe": a 1-3 word creative vibe name (e.g. "cyberpunk nature", "coastal minimalism")
-- "searchParameters": an array of 3-5 search keywords for finding matching destinations
-- "emotionalTone": a single word capturing the emotional undertone (e.g. "wanderlust", "escapism", "curiosity")
-- "rationale": a short 1-sentence explanation of why these images suggest this vibe
-
-Return ONLY valid JSON, no markdown fences.`;
+): Promise<VibeIntentResult | null> {
+  if (!genAI) return null;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+    const context = selectedImageIds.map(id => {
+      return `Image ${id}: Vibes=[${imageVibes[id]?.join(', ')}], Location=[${imageLocations[id]}]`;
+    }).join('\n');
+
+    const prompt = `Based on these selected travel images, capture the "soul" of this trip.
+    Selected images:
+    ${context}
+
+    Return exactly a JSON object: { "suggestedVibe": "vibe_name", "emotionalTone": "brief_description", "confidence": 0.0-1.0 }
+    Vibe name MUST be one of: serene, vibrant, mysterious, rugged, minimalist, luxurious, unplugged, cultural, nocturnal, nostalgic, futuristic, bohemian, cinematic, ethereal.
+    Emotional tone should be 2-3 words (e.g., "Reflective & Quiet", "High-Energy Urban").`;
+
+    const response = await genAI.models.generateContent({
+      model: "gemini-1.5-flash",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
 
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-    // Strip potential markdown fences
-    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(clean) as VibeIntentResult;
+    const text = response.text;
+    if (text) {
+      const match = text.match(/\{.*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+    return null;
   } catch (error) {
-    console.error('[Gemini] Failed to parse vibe intent:', error);
-    return {
-      suggestedVibe: 'eclectic wanderer',
-      searchParameters: ['adventure', 'culture', 'nature'],
-      emotionalTone: 'curiosity',
-      rationale: 'Your selections suggest a diverse and open-minded traveler.',
-    };
+    console.error("Vibe Parsing Error:", error);
+    return null;
+  }
+}
+
+export async function generateDestinationRationaleSentence(prompt: string): Promise<string> {
+  if (!genAI) return "This destination perfectly aligns with your current travel patterns and selected vibes.";
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+    return response.text || "This destination perfectly aligns with your current travel patterns and selected vibes.";
+  } catch (error) {
+    console.error("Rationale Error:", error);
+    return "This destination aligns with your selected travel preferences.";
   }
 }
