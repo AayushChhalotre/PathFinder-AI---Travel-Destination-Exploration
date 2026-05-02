@@ -566,4 +566,44 @@ export const SEASONALITY_DATA: Record<string, SeasonalityProfile> = {
       October: 'Post-monsoon. Clear Himalayan views. Rapids at best.'
     }
   },
+  // d57 — Paris
+  d57: {
+    bestMonths: ['April', 'May', 'June', 'September', 'October'],
+    avoidMonths: ['January', 'February', 'November'],
+    monthlyScore: {
+      January: 0.4, February: 0.45, March: 0.65, April: 0.9,
+      May: 0.95, June: 0.9, July: 0.75, August: 0.75,
+      September: 0.95, October: 0.85, November: 0.5, December: 0.6
+    },
+    weatherRisk: {
+      January: 'Cold and damp. Short days.',
+      November: 'Gray skies and frequent rain.',
+      July: 'Possible heatwaves in the city.'
+    },
+    seasonalHighlight: {
+      May: 'Outdoor cafes in full swing. Beautiful spring weather.',
+      December: 'Holiday lights and Christmas markets.',
+      September: 'Fashion Week atmosphere. Pleasant weather.'
+    }
+  },
+  // d58 — London
+  d58: {
+    bestMonths: ['May', 'June', 'July', 'August', 'September'],
+    avoidMonths: ['January', 'February'],
+    monthlyScore: {
+      January: 0.35, February: 0.4, March: 0.55, April: 0.75,
+      May: 0.9, June: 0.95, July: 0.95, August: 0.9,
+      September: 0.85, October: 0.7, November: 0.45, December: 0.55
+    },
+    weatherRisk: {
+      January: 'Shortest days. Often cold and rainy.',
+      December: 'Frequent rain but festive atmosphere.',
+      July: 'Peak tourist season. Crowded attractions.'
+    },
+    seasonalHighlight: {
+      June: 'Summer in the city. Parks are vibrant.',
+      December: 'Winter Wonderland in Hyde Park.',
+      May: 'Chelsea Flower Show. Spring blooms.'
+    }
+  },
 };

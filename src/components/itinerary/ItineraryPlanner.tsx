@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Calendar, Save, Share2, MapPin, Map as MapIcon, Plane, Clock, Sparkles, Building, Moon, Send, Crown, Camera, Palmtree, Waves, Mountain, Tent, Zap, BrainCircuit, History, Cpu, Palette, Film, Landmark, Coffee, User, Users, Users as UsersIcon, Heart, Briefcase, IndianRupee, RefreshCcw, ArrowRight, Lightbulb, Info, CheckCircle2, AlertTriangle, X, Plus, Trash2, StickyNote, Edit2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CloudSun, ShieldCheck, ShieldAlert, Hotel, Globe, Leaf, Compass } from 'lucide-react';
+import { ChevronLeft, Calendar, Save, Share2, MapPin, Map as MapIcon, Plane, Clock, Building, Moon, Send, Crown, Camera, Palmtree, Waves, Mountain, Tent, Zap, BrainCircuit, History, Cpu, Palette, Film, Landmark, Coffee, User, Users, Users as UsersIcon, Heart, Briefcase, IndianRupee, RefreshCcw, ArrowRight, Lightbulb, Info, CheckCircle2, AlertTriangle, X, Plus, Trash2, StickyNote, Edit2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CloudSun, ShieldCheck, ShieldAlert, Hotel, Globe, Leaf, Compass } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { calculateDistance, estimateTravelTime, formatTravelTime } from '../../lib/geoUtils';
 import type { Destination, ItineraryActivity, UserProfile, TripMember, Occasion, Month, Vibe } from '../../types';
-import { intentGraph } from '../../lib/intentGraph';
+import { intentGraph, IntentState } from '../../lib/intentGraph';
 import { SafeImage } from '../ui/ImageAssets';
 import { OCCASIONS, TRANSPORT_OPTIONS } from '../../constants';
 import { WeatherDisplay } from './WeatherDisplay';
@@ -14,9 +14,10 @@ import { calculateBudgetSummary } from '../../lib/budgetUtils';
 import { SEASONALITY_DATA } from '../../data/seasonality_data';
 import { TRAVEL_ADVISORIES } from '../../data/travel_advisories';
 import { PRICE_SIGNALS } from '../../data/price_signals';
+import { usePriceEngine } from '../../hooks/usePriceEngine';
 const VIBE_DESCRIPTIONS: Record<string, string> = {
   'Tropical': 'Lush rainforests and crystal-clear waters meet your desire for exotic serenity.',
-  'Electric': 'High-octane city energy matched with your preference for vibrant nightlife.',
+  'Electric': 'High-octane city energy resonating with your preference for vibrant nightlife.',
   'Zen': 'Peaceful retreats and minimal aesthetics grounded in mindfulness.',
   'Colonial': 'Rich historical narratives and intricate architecture from the era of exploration.',
   'Street': 'Raw, authentic urban experiences and world-class street food scenes.',
@@ -90,7 +91,12 @@ export default function ItineraryPlanner({
   const travelTimeFormatted = formatTravelTime(estimatedHours);
 
   // Read hard constraints from shared intent graph
-  const hardConstraints = intentGraph.getState().hard;
+  const { isRefreshing, refreshComplete, refreshLivePrices } = usePriceEngine();
+  const [intentState, setIntentState] = React.useState<IntentState>(intentGraph.getState());
+
+  useEffect(() => {
+    return intentGraph.subscribe(setIntentState);
+  }, []);
 
   useEffect(() => {
     intentGraph.setHardConstraint('trip_duration', localTripDays);
@@ -303,7 +309,7 @@ export default function ItineraryPlanner({
       time: suggestion.time || '10:00',
       title: suggestion.title || 'Suggested Activity',
       description: suggestion.description || '',
-      iconName: suggestion.iconName || 'Sparkles'
+      iconName: suggestion.iconName || 'Compass'
     };
     setItinerary(prev => ({
       ...prev,
@@ -496,12 +502,12 @@ export default function ItineraryPlanner({
           </div>
         </div>
 
-        {/* Foundations of your Trip - Elaborated Tags */}
+        {/* The Journey's Pulse - Elaborated Tags */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-sm font-medium text-zinc-200 uppercase tracking-widest">Why {destination.name}?</h2>
+            <h2 className="text-sm font-medium text-zinc-200 uppercase tracking-widest">Voyage Alignment</h2>
             <div className="h-px flex-grow bg-white/10" />
-            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <Compass className="w-4 h-4 text-emerald-400" />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -509,7 +515,7 @@ export default function ItineraryPlanner({
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Compass className="w-12 h-12" />
               </div>
-              <h3 className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-3">The Rationale</h3>
+              <h3 className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-3">Voyage Intuition</h3>
               <p className="text-zinc-300 text-sm leading-relaxed italic">
                 "{destination.rationale}"
               </p>
@@ -536,9 +542,9 @@ export default function ItineraryPlanner({
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Globe className="w-12 h-12" />
+                <Fingerprint className="w-12 h-12" />
               </div>
-              <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-3">Selection Basis</h3>
+              <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-3">Harmony Anchors</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-[10px] text-zinc-300">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
@@ -560,7 +566,7 @@ export default function ItineraryPlanner({
         {/* Travel Time Bar Visualization */}
         <section className="mb-16">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-2">
-            <h2 className="text-sm font-medium text-zinc-200 uppercase tracking-widest">Trip Timeline Visualization</h2>
+            <h2 className="text-sm font-medium text-zinc-200 uppercase tracking-widest">Voyage Rhythm</h2>
             <div className="flex gap-4 text-[8px] md:text-[10px] uppercase tracking-widest font-bold">
               <div className="flex items-center gap-1.5 text-rose-400">
                 <div className="w-2 h-2 bg-rose-400 rounded-full" />
@@ -588,7 +594,7 @@ export default function ItineraryPlanner({
               
               <div className="h-full flex-grow flex items-center justify-center relative group">
                 <div className="absolute inset-0 bg-emerald-500/10" />
-                <Sparkles className="w-4 h-4 text-emerald-400 z-10" />
+                <Globe className="w-4 h-4 text-emerald-400 z-10" />
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {Math.round(totalDays * 24 - estimatedHours * 2)}h Exploration
                 </div>
@@ -618,9 +624,9 @@ export default function ItineraryPlanner({
               <div className="p-4 rounded-2xl border border-white/10 bg-white/5 shadow-lg space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center">
-                    <Lightbulb className="w-3.5 h-3.5 text-white" />
+                    <Compass className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h4 className="font-display font-bold text-[10px] text-white uppercase tracking-widest">Traveler Tips</h4>
+                  <h4 className="font-display font-bold text-[10px] text-white uppercase tracking-widest">Traveler Intuition</h4>
                 </div>
 
                 <div className="relative h-[100px] w-full">
@@ -761,7 +767,7 @@ export default function ItineraryPlanner({
             </div>
           </div>
 
-          {/* ── Destination Intelligence — Elaborated Tags ── */}
+          {/* ── Destination Insight — Elaborated Tags ── */}
           <div className="mt-8 grid md:grid-cols-3 gap-6">
             {/* Seasonality Deep Dive */}
             {SEASONALITY_DATA[destination.id] && (() => {
@@ -781,9 +787,9 @@ export default function ItineraryPlanner({
                       {isIdeal ? <Sun className="w-4 h-4 text-emerald-400" /> : isRisky ? <AlertTriangle className="w-4 h-4 text-red-400" /> : <CloudSun className="w-4 h-4 text-amber-400" />}
                     </div>
                     <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Season Suitability</h4>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Seasonal Rhythm</h4>
                       <p className={cn("text-sm font-bold", isIdeal ? "text-emerald-400" : isRisky ? "text-red-400" : "text-amber-400")}>
-                        {isIdeal ? 'Ideal Season' : isRisky ? 'Off-Season Risk' : 'Shoulder Season'} — {Math.round(score * 100)}% match
+                        {isIdeal ? 'Ideal Season' : isRisky ? 'Off-Season Risk' : 'Shoulder Season'} — {Math.round(score * 100)}% alignment
                       </p>
                     </div>
                   </div>
@@ -836,18 +842,53 @@ export default function ItineraryPlanner({
             {PRICE_SIGNALS[destination.id] && (() => {
               const ps = PRICE_SIGNALS[destination.id];
               return (
-                <div className="p-5 rounded-2xl border border-white/10 bg-white/5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-blue-500/20">
-                      <IndianRupee className="w-4 h-4 text-blue-400" />
+                <div className={cn(
+                  "p-5 rounded-2xl border space-y-3 transition-all duration-500",
+                  ps.isLive ? "bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)]" : "bg-white/5 border-white/10"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "w-8 h-8 rounded-xl flex items-center justify-center transition-colors duration-500",
+                        ps.isLive ? "bg-emerald-500/20" : "bg-blue-500/20"
+                      )}>
+                        {isRefreshing ? (
+                          <RefreshCw className="w-4 h-4 text-emerald-400 animate-spin" />
+                        ) : (
+                          <IndianRupee className={cn("w-4 h-4", ps.isLive ? "text-emerald-400" : "text-blue-400")} />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Price Insight</h4>
+                        <p className={cn("text-sm font-bold transition-colors duration-500", ps.isLive ? "text-emerald-400" : "text-blue-400")}>
+                          {isRefreshing ? 'Harmonizing Market Data...' : ps.isLive ? 'Live Voyage Pricing' : 'Route-Specific Pricing'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Price Intelligence</h4>
-                      <p className="text-sm font-bold text-blue-400">Route-Specific Pricing</p>
+                    <div className="flex items-center gap-2">
+                      {ps.isLive && (
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400">Live</span>
+                          </div>
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => refreshLivePrices(destination.id)}
+                        disabled={isRefreshing}
+                        className={cn(
+                          "p-2 rounded-lg border transition-all",
+                          refreshComplete ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : 
+                          "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
+                        )}
+                      >
+                        {refreshComplete ? <CheckCircle2 className="w-3.5 h-3.5" /> : <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />}
+                      </button>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl">
+                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5">
                       <div className="flex items-center gap-2">
                         <Plane className="w-3.5 h-3.5 text-zinc-400" />
                         <div>
@@ -855,30 +896,33 @@ export default function ItineraryPlanner({
                           <span className="text-[9px] text-zinc-500 ml-1.5">{ps.cheapestFlight.isDirect ? 'Direct' : `${ps.cheapestFlight.stops || 1} stop`}</span>
                         </div>
                       </div>
-                      <span className="text-sm font-bold text-white">₹{ps.cheapestFlight.price.toLocaleString('en-IN')}</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-bold text-white">₹{ps.cheapestFlight.price.toLocaleString('en-IN')}</span>
+                        <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{ps.cheapestFlight.source}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl">
+                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5">
                       <div className="flex items-center gap-2">
                         <Hotel className="w-3.5 h-3.5 text-zinc-400" />
                         <div>
                           <span className="text-xs font-bold text-white">{ps.bestValueHotel.name}</span>
-                          <span className="text-[9px] text-zinc-500 ml-1.5">{'★'.repeat(Math.floor(ps.bestValueHotel.rating))}</span>
+                          <span className="text-[9px] text-zinc-500 ml-1.5">{ps.bestValueHotel.category}</span>
                         </div>
                       </div>
-                      <span className="text-sm font-bold text-white">₹{ps.bestValueHotel.pricePerNight.toLocaleString('en-IN')}<span className="text-zinc-500 text-[9px] font-normal">/night</span></span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-3.5 h-3.5 text-zinc-400" />
-                        <span className="text-xs font-bold text-white">Daily Budget (food + transport + activities)</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-bold text-white">₹{ps.bestValueHotel.pricePerNight.toLocaleString('en-IN')}/n</span>
+                        <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{ps.bestValueHotel.source}</span>
                       </div>
-                      <span className="text-sm font-bold text-white">₹{ps.estimatedDailyBudget.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
-                  <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest text-center pt-1">Prices via {ps.cheapestFlight.source} • ±15% tolerance</p>
+                  <div className="flex items-center justify-between pt-1 opacity-60">
+                    <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest italic">Includes daily budget: ₹{ps.estimatedDailyBudget.toLocaleString('en-IN')}</span>
+                    <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Verified: {ps.lastUpdated || 'Recent'}</span>
+                  </div>
                 </div>
               );
             })()}
+
           </div>
         </section>
 
@@ -1229,7 +1273,7 @@ export default function ItineraryPlanner({
               <div className="p-8 bg-emerald-500/5 rounded-3xl border border-emerald-500/10">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-white" />
+                    <Lightbulb className="w-4 h-4 text-white" />
                   </div>
                   <h4 className="font-display font-bold">
                     {destination.popularActivities && destination.popularActivities.length > 0 

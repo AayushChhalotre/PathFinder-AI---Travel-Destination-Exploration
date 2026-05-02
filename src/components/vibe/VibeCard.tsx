@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, MapPin, Star, TrendingUp, BadgePercent, Sparkles as SparklesIcon, ImageOff } from 'lucide-react';
+import { Check, MapPin, Star, TrendingUp, BadgePercent, Leaf, ImageOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { VibeImage, Vibe } from '../../types';
 
@@ -40,7 +40,7 @@ export function VibeCard({ image, isSelected, index, onToggle }: VibeCardProps) 
     popular: { icon: Star, color: 'bg-amber-500/80 text-white' },
     trending: { icon: TrendingUp, color: 'bg-rose-500/80 text-white' },
     niche: { icon: BadgePercent, color: 'bg-indigo-500/80 text-white' },
-    new: { icon: SparklesIcon, color: 'bg-emerald-500/80 text-white' },
+    new: { icon: Leaf, color: 'bg-emerald-500/80 text-white' },
     budget: { icon: Star, color: 'bg-zinc-300/80 text-black/80' },
   };
 
@@ -123,7 +123,7 @@ export function VibeCard({ image, isSelected, index, onToggle }: VibeCardProps) 
             animate={{ scale: 1 }}
             className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-2xl"
           >
-            <Sparkles className="text-black w-5 h-5" />
+            <Check className="text-black w-5 h-5" />
           </motion.div>
           <motion.div
             initial={{ scale: 0.5, opacity: 1 }}

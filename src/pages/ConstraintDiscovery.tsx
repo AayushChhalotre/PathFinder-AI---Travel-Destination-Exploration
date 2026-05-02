@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { IndianRupee, CalendarDays, ArrowRight, Info, Clock, Sparkles, Lock } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { SessionStateBar } from '../components/ui/SessionStateBar';
+import { IndianRupee, CalendarDays, ArrowRight, Info, Clock, Compass, Lock, Loader2 } from 'lucide-react';
+import { cn, formatCurrency } from '../lib/utils';
+
 import { PathfinderHeader } from '../components/layout/PathfinderHeader';
 import { HardConstraints } from '../types';
 import { intentGraph } from '../lib/intentGraph';
@@ -24,6 +24,7 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [isRefining, setIsRefining] = useState(false);
 
   // Sync from global state
   React.useEffect(() => {
@@ -39,8 +40,12 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
       if (state.hard.date_start !== null) setStartDate(state.hard.date_start);
       if (state.hard.date_end !== null) setEndDate(state.hard.date_end);
       if (state.soft.travel_month !== null) setSelectedMonth(state.soft.travel_month);
+      setIsRefining(!!state.refining);
     });
   }, []);
+
+  const intentState = intentGraph.getState();
+  const seedDestination = intentState.hard.seed_destination;
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -89,14 +94,22 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full"
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Step 2: Grounding Reality</span>
+              <Compass className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                {seedDestination ? `Exploring ${seedDestination}` : 'Step 2: Threshold of Possibility'}
+              </span>
             </motion.div>
             <h2 className="text-5xl md:text-7xl font-display font-bold text-white uppercase tracking-tighter leading-none">
-              Define Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-[#7f7ff5]">Reality</span>
+              {seedDestination ? (
+                <>Plan Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-[#7f7ff5]">Journey</span></>
+              ) : (
+                <>Define Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-[#7f7ff5]">Pulse</span></>
+              )}
             </h2>
             <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed">
-              Start with your fixed constraints. We'll find everything that works within your bounds.
+              {seedDestination 
+                ? `Let's anchor your trip to ${seedDestination} with some essential details.`
+                : "Start with your voyage anchors. We'll find everything that resonates within your bounds."}
             </p>
           </section>
 
@@ -116,35 +129,47 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                       <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Hard Constraint</span>
+                       <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Voyage Anchor</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-white">Maximum Budget</h3>
+                    <h3 className="text-2xl font-bold text-white">Voyage Rhythm</h3>
                   </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-display font-bold text-white">₹{budget.toLocaleString('en-IN')}</div>
-                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Total for all travelers</div>
+                  <div className="text-right space-y-1">
+                    <div className="text-3xl font-display font-bold text-white">{formatCurrency(budget)}</div>
+                    <div className="flex flex-col items-end">
+                      <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Total for all travelers</div>
+                      {isRefining && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-1.5 mt-1"
+                        >
+                          <Loader2 className="w-2.5 h-2.5 text-emerald-400 animate-spin" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400/80">Refining...</span>
+                        </motion.div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-6 relative">
                   <input
                     type="range"
-                    min="5000"
-                    max="500000"
-                    step="5000"
+                    min="10000"
+                    max="1000000"
+                    step="10000"
                     value={budget}
                     onChange={e => setBudget(Number(e.target.value))}
                     className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-white hover:accent-emerald-400 transition-all"
                   />
                   <div className="flex justify-between text-[11px] text-zinc-500 font-black uppercase tracking-tighter">
-                    <span>₹5,000</span>
-                    <span className="text-zinc-400">Optimal Range: ₹50k - ₹3L</span>
-                    <span>₹5,00,000</span>
+                    <span>₹10,000</span>
+                    <span className="text-zinc-400">Optimal Range: ₹50k - ₹5L</span>
+                    <span>₹10,00,000</span>
                   </div>
                 </div>
 
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium italic">
-                  "This limit acts as a hard filter. We will never show you a destination that exceeds this ceiling for your travel duration."
+                  "This limit acts as a guiding anchor. We will only present journeys that align with this spending pulse for your entire stay."
                 </p>
               </motion.div>
 
@@ -160,7 +185,7 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
                 <div className="space-y-1 relative">
                   <div className="flex items-center gap-2">
                      <div className="w-2 h-2 bg-violet-500 rounded-full" />
-                     <span className="text-[10px] font-black uppercase tracking-widest text-violet-400">Time Bound</span>
+                     <span className="text-[10px] font-black uppercase tracking-widest text-violet-400">Temporal Anchor</span>
                   </div>
                   <h3 className="text-2xl font-bold text-white">Travel Dates</h3>
                 </div>
@@ -203,10 +228,10 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                      <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                     <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Seasonality</span>
+                     <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Seasonal Harmony</span>
                   </div>
                   <h3 className="text-2xl font-bold text-white">Month of Travel</h3>
-                  <p className="text-zinc-500 text-sm">Flexible? Select a month to see optimal seasonal matches.</p>
+                  <p className="text-zinc-500 text-sm">Flexible? Select a month to see optimal seasonal alignments.</p>
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -237,7 +262,7 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
                   <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#7f7ff5]/5 border border-[#7f7ff5]/20">
                     <Info className="w-5 h-5 text-[#7f7ff5] shrink-0 mt-0.5" />
                     <p className="text-xs text-zinc-300 leading-relaxed">
-                      Your preferences are being synced with our <span className="text-white font-bold">Intent Graph</span>. This allows us to perform high-fidelity matching across all travel parameters.
+                      Your preferences are being synced with your <span className="text-white font-bold">Voyage Intuition</span>. This allows us to perform deep harmonic alignment across all travel parameters.
                     </p>
                   </div>
 
@@ -248,7 +273,7 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
                     disabled={(!startDate || !endDate) && !selectedMonth}
                     className="w-full py-6 bg-white text-black rounded-[2rem] font-display font-bold text-xl flex items-center justify-center gap-3 shadow-[0_20px_50px_rgba(255,255,255,0.1)] hover:shadow-[0_20px_50px_rgba(255,255,255,0.15)] transition-all disabled:opacity-20 disabled:cursor-not-allowed group"
                   >
-                    View Real-Time Matches
+                    View Aligned Journeys
                     <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </motion.button>
                 </div>

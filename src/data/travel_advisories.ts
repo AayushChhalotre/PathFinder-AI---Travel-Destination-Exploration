@@ -261,4 +261,20 @@ export const TRAVEL_ADVISORIES: Record<string, TravelAdvisory> = {
     lastUpdated: '2026-03-20',
     source: 'MEA Advisory'
   },
+  // d57 — Paris
+  d57: {
+    level: 'safe',
+    summary: 'Safe with standard urban precautions.',
+    details: 'Schengen visa required for Indian citizens. Be aware of pickpockets in crowded areas like the Metro and popular monuments.',
+    lastUpdated: '2026-04-20',
+    source: 'MEA Advisory'
+  },
+  // d58 — London
+  d58: {
+    level: 'safe',
+    summary: 'Safe with standard urban precautions.',
+    details: 'Standard Visitor visa required for Indian citizens. Exercise normal caution in crowded public spaces.',
+    lastUpdated: '2026-04-22',
+    source: 'FCDO Advisory'
+  },
 };

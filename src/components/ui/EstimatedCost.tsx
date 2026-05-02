@@ -1,7 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { cn } from '../../lib/utils';
-
+import { cn, formatCurrency } from '../../lib/utils';
 export type CostBasis = 'per_person' | 'total';
 
 const TOOLTIP_TEXT =
@@ -20,7 +19,7 @@ export function EstimatedCost({
   className?: string;
   textClassName?: string;
 }) {
-  const amount = `₹${amountINR.toLocaleString()}`;
+  const amount = formatCurrency(amountINR);
 
   const qualifier =
     costBasis === 'per_person'

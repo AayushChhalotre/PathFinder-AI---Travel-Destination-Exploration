@@ -123,7 +123,7 @@ export function ConstraintPanel({
           <div className="flex justify-between items-center">
             <label className="text-sm font-medium text-zinc-200 uppercase tracking-wider flex items-center gap-2">
               <IndianRupee className="w-4 h-4 text-emerald-400" />
-              Budget Cap (INR)
+              Voyage Rhythm
             </label>
             <span className="text-white font-display font-medium tabular-nums">
               <EstimatedCost amountINR={budget} costBasis={budgetBasis} numTravellers={numTravellers} textClassName="text-white" />
