@@ -268,6 +268,12 @@ export default function App() {
 
   // Auth State Listener
   useEffect(() => {
+    if (!auth || !db) {
+      console.warn('[Firebase] Auth or Database not initialized. Environment variables might be missing.');
+      setIsAuthLoading(false);
+      return;
+    }
+
     // Test Firestore connection
     const testConnection = async () => {
       try {
@@ -315,6 +321,10 @@ export default function App() {
   }, []);
 
   const handleGoogleLogin = async () => {
+    if (!auth) {
+      alert("Auth is not properly initialized. Please check your Firebase configuration.");
+      return;
+    }
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const loggedInUser = result.user;
@@ -339,6 +349,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    if (!auth) return;
     try {
       await signOut(auth);
       setUser(null);
@@ -349,7 +360,7 @@ export default function App() {
   };
 
   const saveProfileToFirestore = async (updatedProfile: UserProfile) => {
-    if (!user) return;
+    if (!user || !db) return;
     try {
       await setDoc(doc(db, 'users', user.uid), {
         ...updatedProfile,

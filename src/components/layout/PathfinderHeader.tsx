@@ -49,7 +49,10 @@ export const PathfinderHeader: React.FC<PathfinderHeaderProps> = ({
   };
 
   const getSuggestedBudget = () => {
-    const { dimensions } = intentState.soft.intent_vector;
+    const vector = (intentState.soft as any).intent_vector;
+    if (!vector || !vector.dimensions) return 300000; // Default fallback
+
+    const { dimensions } = vector;
     // luxury_vs_rugged: -1 (luxury) to 1 (rugged)
     if (dimensions.luxury_vs_rugged < -0.3) return 600000; // Premium
     if (dimensions.luxury_vs_rugged > 0.3) return 150000; // Value/Rugged
