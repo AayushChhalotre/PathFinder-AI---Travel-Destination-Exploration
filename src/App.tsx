@@ -105,7 +105,7 @@ import { generateDestinationRationaleSentence } from './lib/gemini';
 import { intentGraph } from './lib/intentGraph';
 
 import { SafeImage, ImageCarousel } from './components/ui/ImageAssets';
-import { SessionStateBar } from './components/ui/SessionStateBar';
+
 import { WeatherDisplay } from './components/itinerary/WeatherDisplay';
 
 
@@ -742,7 +742,7 @@ export default function App() {
       {/* Persistent Session State Bar */}
       {location.pathname !== '/' && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] w-full max-w-3xl px-6">
-          <SessionStateBar />
+
         </div>
       )}
 
