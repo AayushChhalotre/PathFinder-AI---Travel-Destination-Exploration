@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Calendar, Save, Share2, MapPin, Map as MapIcon, Plane, Clock, Building, Moon, Send, Crown, Camera, Palmtree, Waves, Mountain, Tent, Zap, BrainCircuit, History, Cpu, Palette, Film, Landmark, Coffee, User, Users, Users as UsersIcon, Heart, Briefcase, IndianRupee, RefreshCcw, ArrowRight, Lightbulb, Info, CheckCircle2, AlertTriangle, X, Plus, Trash2, StickyNote, Edit2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CloudSun, ShieldCheck, ShieldAlert, Hotel, Globe, Leaf, Compass } from 'lucide-react';
+import { ChevronLeft, Calendar, Save, Share2, MapPin, Map as MapIcon, Plane, Clock, Building, Moon, Send, Crown, Camera, Palmtree, Waves, Mountain, Tent, Zap, BrainCircuit, History, Cpu, Palette, Film, Landmark, Coffee, User, Users, Users as UsersIcon, Heart, Briefcase, IndianRupee, RefreshCcw, ArrowRight, Lightbulb, Info, CheckCircle2, AlertTriangle, X, Plus, Trash2, StickyNote, Edit2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CloudSun, ShieldCheck, ShieldAlert, Hotel, Globe, Leaf, Compass, Fingerprint } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { calculateDistance, estimateTravelTime, formatTravelTime } from '../../lib/geoUtils';
 import type { Destination, ItineraryActivity, UserProfile, TripMember, Occasion, Month, Vibe } from '../../types';
@@ -548,7 +548,7 @@ export default function ItineraryPlanner({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-[10px] text-zinc-300">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                  <span>Fits ₹{(hardConstraints?.budget_ceiling || 0).toLocaleString()} budget limit</span>
+                  <span>Fits ₹{(intentState.hard?.budget_ceiling || 0).toLocaleString()} budget limit</span>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-zinc-300">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
