@@ -40,12 +40,10 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
       if (state.hard.date_start !== null) setStartDate(state.hard.date_start);
       if (state.hard.date_end !== null) setEndDate(state.hard.date_end);
       if (state.soft.travel_month !== null) setSelectedMonth(state.soft.travel_month);
-      setIsRefining(!!state.refining);
     });
   }, []);
 
-  const intentState = intentGraph.getState();
-  const seedDestination = intentState.hard.seed_destination;
+  const seedDestination: string | null = null; // Reserved for future destination-seeding feature
 
   const today = new Date().toISOString().split('T')[0];
 

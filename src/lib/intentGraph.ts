@@ -13,6 +13,7 @@ export interface SoftPreferences {
   interaction_history: Interaction[];
   consecutive_direction_count: number;
   last_direction_signal: string | null;
+  rejectedIds: string[];
 }
 
 export interface IntentState {
@@ -39,7 +40,8 @@ class IntentGraph {
       travel_month: null,
       interaction_history: [],
       consecutive_direction_count: 0,
-      last_direction_signal: null
+      last_direction_signal: null,
+      rejectedIds: []
     }
   };
 
@@ -50,11 +52,42 @@ class IntentGraph {
     const saved = sessionStorage.getItem('pathfinder_intent_graph');
     if (saved) {
       try {
-        this.state = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        this.state = this.sanitizeState(parsed);
       } catch (e) {
         console.error('Failed to parse saved intent graph', e);
+        // Reset to defaults on corrupt data
+        sessionStorage.removeItem('pathfinder_intent_graph');
       }
     }
+  }
+
+  /**
+   * Strips any legacy or unrecognized fields from a loaded state object
+   * to prevent crashes from stale sessionStorage data (e.g., old intent_vector).
+   */
+  private sanitizeState(raw: any): IntentState {
+    const defaults = this.state;
+    return {
+      hard: {
+        budget_ceiling: raw?.hard?.budget_ceiling ?? defaults.hard.budget_ceiling,
+        estimate_cost: raw?.hard?.estimate_cost ?? defaults.hard.estimate_cost,
+        date_start: raw?.hard?.date_start ?? defaults.hard.date_start,
+        date_end: raw?.hard?.date_end ?? defaults.hard.date_end,
+        origin: raw?.hard?.origin ?? defaults.hard.origin,
+        num_travellers: raw?.hard?.num_travellers ?? defaults.hard.num_travellers,
+        trip_duration: raw?.hard?.trip_duration ?? defaults.hard.trip_duration,
+      },
+      soft: {
+        mood_tags: Array.isArray(raw?.soft?.mood_tags) ? raw.soft.mood_tags : [],
+        occasion_tags: Array.isArray(raw?.soft?.occasion_tags) ? raw.soft.occasion_tags : [],
+        travel_month: raw?.soft?.travel_month ?? null,
+        interaction_history: Array.isArray(raw?.soft?.interaction_history) ? raw.soft.interaction_history : [],
+        consecutive_direction_count: raw?.soft?.consecutive_direction_count ?? 0,
+        last_direction_signal: raw?.soft?.last_direction_signal ?? null,
+        rejectedIds: Array.isArray(raw?.soft?.rejectedIds) ? raw.soft.rejectedIds : [],
+      },
+    };
   }
 
   private notify() {
@@ -132,7 +165,8 @@ class IntentGraph {
         travel_month: null,
         interaction_history: [],
         consecutive_direction_count: 0,
-        last_direction_signal: null
+        last_direction_signal: null,
+        rejectedIds: []
       }
     };
     this.notify();
@@ -178,6 +212,18 @@ class IntentGraph {
 
   resetDirectionCount() {
     this.state.soft.consecutive_direction_count = 0;
+    this.notify();
+  }
+
+  rejectDestination(id: string) {
+    if (!this.state.soft.rejectedIds.includes(id)) {
+      this.state.soft.rejectedIds.push(id);
+      this.notify();
+    }
+  }
+
+  undoRejection(id: string) {
+    this.state.soft.rejectedIds = this.state.soft.rejectedIds.filter(rid => rid !== id);
     this.notify();
   }
 
