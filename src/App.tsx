@@ -98,6 +98,7 @@ import { VibeDiscovery } from './pages/VibeDiscovery';
 import { ConstraintDiscovery } from './pages/ConstraintDiscovery';
 import { CandidateResults } from './pages/CandidateResults.tsx';
 import { VibeCandidates } from './pages/VibeCandidates';
+import { DestinationSearch } from './pages/DestinationSearch';
 
 import { ICON_MAP } from './lib/icons';
 import { generateDestinationRationaleSentence } from './lib/gemini';
@@ -767,6 +768,15 @@ export default function App() {
             onShowProfile={() => setShowProfileModal(true)}
             onOriginSubmit={handleOriginSubmit}
             onNavigateToCandidates={() => navigate('/discover/vibe/candidates')}
+          />
+        } />
+
+        <Route path="/discover/destination" element={
+          <DestinationSearch 
+            user={user}
+            profile={profile}
+            onShowProfile={() => setShowProfileModal(true)}
+            onExplore={handlePlanItinerary}
           />
         } />
 

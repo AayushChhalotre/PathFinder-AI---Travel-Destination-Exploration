@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, User, RefreshCcw, ArrowLeft, ChevronDown, ChevronUp, Calendar, Fingerprint, Activity, DraftingCompass } from 'lucide-react';
+import { Compass, User, RefreshCcw, ArrowLeft, ChevronDown, ChevronUp, Calendar, Fingerprint as FingerprintIcon, Activity, DraftingCompass } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
 import { intentGraph, IntentState } from '../../lib/intentGraph';
@@ -49,14 +49,13 @@ export const PathfinderHeader: React.FC<PathfinderHeaderProps> = ({
   };
 
   const getSuggestedBudget = () => {
-    const vector = (intentState.soft as any).intent_vector;
-    if (!vector || !vector.dimensions) return 300000; // Default fallback
-
-    const { dimensions } = vector;
-    // luxury_vs_rugged: -1 (luxury) to 1 (rugged)
-    if (dimensions.luxury_vs_rugged < -0.3) return 600000; // Premium
-    if (dimensions.luxury_vs_rugged > 0.3) return 150000; // Value/Rugged
-    return 300000; // Balanced
+    const moods = intentState.soft.mood_tags;
+    
+    // Derived "vibe" logic from mood tags
+    if (moods.includes('luxurious')) return 600000; // Premium
+    if (moods.includes('rugged') || moods.includes('minimalist') || moods.includes('unplugged')) return 150000; // Value/Rugged
+    
+    return 300000; // Balanced default
   };
 
   const suggestedBudget = getSuggestedBudget();
@@ -102,7 +101,7 @@ export const PathfinderHeader: React.FC<PathfinderHeaderProps> = ({
             >
               <div className="absolute inset-0 bg-emerald-500/0 group-hover/traveller:bg-emerald-500/5 transition-colors" />
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 group-hover/traveller:scale-105 transition-transform">
-                <Fingerprint className="w-4.5 h-4.5 text-emerald-400" />
+                <FingerprintIcon className="w-4.5 h-4.5 text-emerald-400" />
               </div>
               <div className="flex flex-col items-start leading-tight relative z-10">
                 <span className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500 group-hover/traveller:text-zinc-400 transition-colors">Voyagers</span>

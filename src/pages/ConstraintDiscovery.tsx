@@ -24,6 +24,7 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [seedDestination, setSeedDestination] = useState<string | null>(null);
   const [isRefining, setIsRefining] = useState(false);
 
   // Sync from global state
@@ -33,6 +34,7 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
     if (current.hard.date_start) setStartDate(current.hard.date_start);
     if (current.hard.date_end) setEndDate(current.hard.date_end);
     if (current.soft.travel_month) setSelectedMonth(current.soft.travel_month);
+    if (current.soft.target_destination) setSeedDestination(current.soft.target_destination);
 
     // Subscribe to future updates
     return intentGraph.subscribe((state) => {
@@ -40,10 +42,9 @@ export const ConstraintDiscovery: React.FC<ConstraintDiscoveryProps> = ({
       if (state.hard.date_start !== null) setStartDate(state.hard.date_start);
       if (state.hard.date_end !== null) setEndDate(state.hard.date_end);
       if (state.soft.travel_month !== null) setSelectedMonth(state.soft.travel_month);
+      if (state.soft.target_destination !== null) setSeedDestination(state.soft.target_destination);
     });
   }, []);
-
-  const seedDestination: string | null = null; // Reserved for future destination-seeding feature
 
   const today = new Date().toISOString().split('T')[0];
 

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { checkRateLimit, incrementRateLimit, RateLimitError } from './rateLimiter';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -25,6 +26,12 @@ export async function parseVibeIntent(
   if (!genAI) return null;
 
   try {
+    // Check rate limit
+    const status = await checkRateLimit();
+    if (!status.allowed) {
+      throw new RateLimitError(status);
+    }
+
     const context = selectedImageIds.map(id => {
       return `Image ${id}: Vibes=[${imageVibes[id]?.join(', ')}], Location=[${imageLocations[id]}]`;
     }).join('\n');
@@ -43,12 +50,17 @@ export async function parseVibeIntent(
     });
 
     const text = response.text;
+    
+    // Increment on successful hit
+    await incrementRateLimit();
+
     if (text) {
       const match = text.match(/\{.*\}/);
       return match ? JSON.parse(match[0]) : null;
     }
     return null;
   } catch (error) {
+    if (error instanceof RateLimitError) throw error;
     console.error("Vibe Parsing Error:", error);
     return null;
   }
@@ -58,10 +70,20 @@ export async function generateDestinationRationaleSentence(prompt: string): Prom
   if (!genAI) return "This destination perfectly aligns with your current travel patterns and selected vibes.";
 
   try {
+    // Check rate limit
+    const status = await checkRateLimit();
+    if (!status.allowed) {
+      // For background tasks like rationale, we might want to just return a default instead of throwing
+      return "This destination aligns with your selected travel preferences.";
+    }
+
     const response = await genAI.models.generateContent({
       model: "gemini-1.5-flash",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
+
+    // Increment on successful hit
+    await incrementRateLimit();
 
     return response.text || "This destination perfectly aligns with your current travel patterns and selected vibes.";
   } catch (error) {
@@ -69,3 +91,4 @@ export async function generateDestinationRationaleSentence(prompt: string): Prom
     return "This destination aligns with your selected travel preferences.";
   }
 }
+

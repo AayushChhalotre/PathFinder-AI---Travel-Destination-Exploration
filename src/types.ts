@@ -136,3 +136,35 @@ export interface HardConstraints {
   num_travellers: number | null;
   trip_duration: number | null;
 }
+
+export interface AlternativeDestination {
+  name: string;
+  location: string;
+  whyBetter: string;
+  estimatedCostINR: number;
+  vibeMatch: string[];
+  imageUrl: string;
+}
+
+export interface DestinationAnalysis {
+  destinationName: string;
+  feasibilityScore: number; // 0–100
+  weatherOutlook: {
+    summary: string;
+    tempRange: string;
+    season: string;
+  };
+  travelAdvisory: {
+    level: 'safe' | 'caution' | 'warning' | 'avoid';
+    details: string;
+  };
+  estimatedCost: {
+    flightINR: number;
+    stayPerNightINR: number;
+    totalEstimateINR: number;
+  };
+  budgetAlignment: 'within' | 'stretch' | 'over';
+  vibeMatch: string[];
+  rationale: string;
+  alternatives: AlternativeDestination[];
+}

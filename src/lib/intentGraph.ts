@@ -10,10 +10,12 @@ export interface SoftPreferences {
   mood_tags: string[];
   occasion_tags: string[];
   travel_month: string | null;
+  accommodation_tier: 'Standard' | 'Comfort' | 'Luxury' | null;
   interaction_history: Interaction[];
   consecutive_direction_count: number;
   last_direction_signal: string | null;
   rejectedIds: string[];
+  target_destination: string | null;
 }
 
 export interface IntentState {
@@ -38,10 +40,12 @@ class IntentGraph {
       mood_tags: [],
       occasion_tags: [],
       travel_month: null,
+      accommodation_tier: null,
       interaction_history: [],
       consecutive_direction_count: 0,
       last_direction_signal: null,
-      rejectedIds: []
+      rejectedIds: [],
+      target_destination: null
     }
   };
 
@@ -82,10 +86,12 @@ class IntentGraph {
         mood_tags: Array.isArray(raw?.soft?.mood_tags) ? raw.soft.mood_tags : [],
         occasion_tags: Array.isArray(raw?.soft?.occasion_tags) ? raw.soft.occasion_tags : [],
         travel_month: raw?.soft?.travel_month ?? null,
+        accommodation_tier: raw?.soft?.accommodation_tier ?? null,
         interaction_history: Array.isArray(raw?.soft?.interaction_history) ? raw.soft.interaction_history : [],
         consecutive_direction_count: raw?.soft?.consecutive_direction_count ?? 0,
         last_direction_signal: raw?.soft?.last_direction_signal ?? null,
         rejectedIds: Array.isArray(raw?.soft?.rejectedIds) ? raw.soft.rejectedIds : [],
+        target_destination: raw?.soft?.target_destination ?? null,
       },
     };
   }
@@ -163,12 +169,19 @@ class IntentGraph {
         mood_tags: [],
         occasion_tags: [],
         travel_month: null,
+        accommodation_tier: null,
         interaction_history: [],
         consecutive_direction_count: 0,
         last_direction_signal: null,
-        rejectedIds: []
+        rejectedIds: [],
+        target_destination: null
       }
     };
+    this.notify();
+  }
+
+  setTargetDestination(name: string | null) {
+    this.state.soft.target_destination = name;
     this.notify();
   }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Calendar, Save, Share2, MapPin, Map as MapIcon, Plane, Clock, Building, Moon, Send, Crown, Camera, Palmtree, Waves, Mountain, Tent, Zap, BrainCircuit, History, Cpu, Palette, Film, Landmark, Coffee, User, Users, Users as UsersIcon, Heart, Briefcase, IndianRupee, RefreshCcw, ArrowRight, Lightbulb, Info, CheckCircle2, AlertTriangle, X, Plus, Trash2, StickyNote, Edit2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CloudSun, ShieldCheck, ShieldAlert, Hotel, Globe, Leaf, Compass, Fingerprint } from 'lucide-react';
+import { ChevronLeft, Calendar, Save, Share2, MapPin, Map as MapIcon, Plane, Clock, Building, Moon, Send, Crown, Camera, Palmtree, Waves, Mountain, Tent, Zap, BrainCircuit, History, Cpu, Palette, Film, Landmark, Coffee, User, Users, Users as UsersIcon, Heart, Briefcase, IndianRupee, RefreshCcw, ArrowRight, Lightbulb, Info, CheckCircle2, AlertTriangle, X, Plus, Trash2, StickyNote, Edit2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CloudSun, ShieldCheck, ShieldAlert, Hotel, Globe, Leaf, Compass, Fingerprint as FingerprintIcon, ExternalLink, Sparkles } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { calculateDistance, estimateTravelTime, formatTravelTime } from '../../lib/geoUtils';
 import type { Destination, ItineraryActivity, UserProfile, TripMember, Occasion, Month, Vibe } from '../../types';
@@ -15,6 +15,10 @@ import { SEASONALITY_DATA } from '../../data/seasonality_data';
 import { TRAVEL_ADVISORIES } from '../../data/travel_advisories';
 import { PRICE_SIGNALS } from '../../data/price_signals';
 import { usePriceEngine } from '../../hooks/usePriceEngine';
+import { getSkyscannerUrl, getBookingComUrl } from '../../lib/bookingHandoff';
+import ScenarioExplorer from './ScenarioExplorer';
+import { BookingSummary } from './BookingSummary';
+import { generateScenarios } from '../../lib/budgetUtils';
 const VIBE_DESCRIPTIONS: Record<string, string> = {
   'Tropical': 'Lush rainforests and crystal-clear waters meet your desire for exotic serenity.',
   'Electric': 'High-octane city energy resonating with your preference for vibrant nightlife.',
@@ -77,6 +81,8 @@ export default function ItineraryPlanner({
   const [activeActionCardId, setActiveActionCardId] = useState<string | null>(null);
   const [showBudgetBreakdown, setShowBudgetBreakdown] = useState(false);
   const [activityCosts, setActivityCosts] = useState<Record<string, number>>({});
+  const [showScenarioExplorer, setShowScenarioExplorer] = useState(false);
+
   
   const [localTripDays, setLocalTripDays] = useState(tripDays);
   const totalDays = localTripDays;
@@ -362,14 +368,37 @@ export default function ItineraryPlanner({
   }, [itinerary]);
 
   const budgetSummary = useMemo(() => {
-    const baseAdjusted = calculateBudgetSummary(destination, numTravellers, travelMonth, occasion);
+    const tier = intentState.soft.accommodation_tier || 'Luxury';
+    const baseAdjusted = calculateBudgetSummary(destination, numTravellers, travelMonth, occasion, tier);
     // Add the user-added itinerary costs to the breakdown
     return {
       ...baseAdjusted,
       total: baseAdjusted.total + itineraryTotalCost,
       activities: baseAdjusted.activities + itineraryTotalCost
     };
-  }, [destination, numTravellers, travelMonth, occasion, itineraryTotalCost]);
+  }, [destination, numTravellers, travelMonth, occasion, itineraryTotalCost, intentState.soft.accommodation_tier]);
+
+  const budgetScenarios = useMemo(() => {
+    return generateScenarios(
+      destination,
+      numTravellers,
+      travelMonth,
+      occasion,
+      intentState.hard?.budget_ceiling || 0,
+      (intentState.soft.accommodation_tier as any) || 'Luxury',
+      itineraryTotalCost
+    );
+  }, [destination, numTravellers, travelMonth, occasion, intentState.hard?.budget_ceiling, intentState.soft.accommodation_tier, itineraryTotalCost]);
+
+  const handleSelectScenario = (scenario: any) => {
+    if (scenario.adjustments.month) {
+      intentGraph.updateSoftPreference('travel_month', scenario.adjustments.month);
+    }
+    if (scenario.adjustments.accommodationTier) {
+      intentGraph.updateSoftPreference('accommodation_tier', scenario.adjustments.accommodationTier);
+    }
+    setShowScenarioExplorer(false);
+  };
 
   useEffect(() => {
     intentGraph.setHardConstraint('estimate_cost', budgetSummary.total);
@@ -542,13 +571,22 @@ export default function ItineraryPlanner({
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Fingerprint className="w-12 h-12" />
+                <FingerprintIcon className="w-12 h-12" />
               </div>
               <h3 className="text-blue-400 text-xs font-bold uppercase tracking-widest mb-3">Harmony Anchors</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-[10px] text-zinc-300">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                  <span>Fits ₹{(intentState.hard?.budget_ceiling || 0).toLocaleString()} budget limit</span>
+                  {budgetSummary.total <= (intentState.hard?.budget_ceiling || 0) ? (
+                    <>
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span>Fits ₹{(intentState.hard?.budget_ceiling || 0).toLocaleString()} budget limit</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-3 h-3 text-amber-400" />
+                      <span className="text-amber-400">Expanding beyond ₹{(intentState.hard?.budget_ceiling || 0).toLocaleString()} limit</span>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-zinc-300">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
@@ -562,6 +600,44 @@ export default function ItineraryPlanner({
             </div>
           </div>
         </section>
+
+        {/* Expanding the Vision Section - Conditional Budget Overrun */}
+        <AnimatePresence>
+          {budgetSummary.total > (intentState.hard?.budget_ceiling || 0) && (
+            <motion.section 
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: 64 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-8 md:p-10 relative group">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <Sparkles className="w-16 h-16 text-amber-400" />
+                </div>
+                <div className="max-w-3xl">
+                  <h2 className="text-xl md:text-2xl font-display font-bold text-white mb-4">Expanding the Vision</h2>
+                  <p className="text-zinc-200 text-sm md:text-base leading-relaxed mb-8">
+                    Your beautiful vision is currently <span className="text-amber-400 font-bold italic">₹{(budgetSummary.total - (intentState.hard?.budget_ceiling || 0)).toLocaleString('en-IN')}</span> beyond the initial map. It's completely natural to dream big—let's see if we can find a path that feels lighter and just as magical.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <button 
+                      onClick={() => setShowScenarioExplorer(true)}
+                      className="px-6 py-3 bg-amber-500 text-black rounded-xl font-bold text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg"
+                    >
+                      Explore Scenarios
+                    </button>
+                    <button 
+                      onClick={() => setShowBudgetBreakdown(true)}
+                      className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
+                    >
+                      Audit Expenses
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
 
         {/* Travel Time Bar Visualization */}
         <section className="mb-16">
@@ -888,7 +964,7 @@ export default function ItineraryPlanner({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5">
+                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5 group/row">
                       <div className="flex items-center gap-2">
                         <Plane className="w-3.5 h-3.5 text-zinc-400" />
                         <div>
@@ -896,12 +972,23 @@ export default function ItineraryPlanner({
                           <span className="text-[9px] text-zinc-500 ml-1.5">{ps.cheapestFlight.isDirect ? 'Direct' : `${ps.cheapestFlight.stops || 1} stop`}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm font-bold text-white">₹{ps.cheapestFlight.price.toLocaleString('en-IN')}</span>
-                        <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{ps.cheapestFlight.source}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-end">
+                          <span className="text-sm font-bold text-white">₹{ps.cheapestFlight.price.toLocaleString('en-IN')}</span>
+                          <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{ps.cheapestFlight.source}</span>
+                        </div>
+                        <a 
+                          href={getSkyscannerUrl('DEL', destination.name, startDate || null, endDate || null)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 bg-white/10 rounded-lg hover:bg-white text-zinc-400 hover:text-black transition-all"
+                          title="Book on Skyscanner"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5">
+                    <div className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/5 group/row">
                       <div className="flex items-center gap-2">
                         <Hotel className="w-3.5 h-3.5 text-zinc-400" />
                         <div>
@@ -909,9 +996,20 @@ export default function ItineraryPlanner({
                           <span className="text-[9px] text-zinc-500 ml-1.5">{ps.bestValueHotel.category}</span>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-sm font-bold text-white">₹{ps.bestValueHotel.pricePerNight.toLocaleString('en-IN')}/n</span>
-                        <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{ps.bestValueHotel.source}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-end">
+                          <span className="text-sm font-bold text-white">₹{ps.bestValueHotel.pricePerNight.toLocaleString('en-IN')}/n</span>
+                          <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{ps.bestValueHotel.source}</span>
+                        </div>
+                        <a 
+                          href={getBookingComUrl(destination.name, startDate || null, endDate || null, numTravellers)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 bg-white/10 rounded-lg hover:bg-white text-zinc-400 hover:text-black transition-all"
+                          title="Book on Booking.com"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -1301,8 +1399,27 @@ export default function ItineraryPlanner({
 
               {/* Social Media Inspiration section removed from itinerary view */}
             </div>
+
+            {/* Finalize & Book Workflow */}
+            <BookingSummary 
+              destination={{ name: destination.name, id: destination.id }}
+              totalCost={budgetSummary.total}
+              numTravellers={numTravellers}
+              startDate={startDate}
+              endDate={endDate}
+              origin={profile.city || 'DEL'}
+            />
           </div>
-        </div>
+
+        <ScenarioExplorer
+          isOpen={showScenarioExplorer}
+          onClose={() => setShowScenarioExplorer(false)}
+          scenarios={budgetScenarios}
+          currentBudget={budgetSummary.total}
+          budgetLimit={intentState.hard?.budget_ceiling || 0}
+          onSelectScenario={handleSelectScenario}
+        />
+      </div>
     </motion.div>
   );
 }
